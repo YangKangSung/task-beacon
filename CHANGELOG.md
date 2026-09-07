@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.5
+
+Add Grok (xAI) as an AI provider (`https://api.x.ai/v1`).
+
 ## 0.14.4
 
 State the product: Jira-style epics/tasks for company, personal, and agent work (including cron).

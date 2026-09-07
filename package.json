@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Manage company, personal, and agent work — plus cron — with Jira-style epics and tasks in one sidebar.",
-  "version": "0.14.4",
+  "version": "0.14.5",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -389,6 +389,7 @@
           "enum": [
             "litellm",
             "openai",
+            "grok",
             "anthropic",
             "ollama"
           ],

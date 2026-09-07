@@ -23,7 +23,7 @@ const INSTRUCTIONS: Record<SummaryKind, string> = {
 };
 
 /** Real chat-completions call, OpenAI-compatible (works against LiteLLM/
- * Ollama/OpenAI/Anthropic-via-proxy alike, per getAiSettings()'s baseUrl).
+ * Ollama/OpenAI/Grok/Anthropic-via-proxy alike, per getAiSettings()'s baseUrl).
  * Uses http/https directly rather than fetch() — VS Code's extension host
  * Node version varies by release and fetch was experimental pre-v21. */
 export async function summarizeWithAi(

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { fetchModelHealthMap, ModelHealthStatus } from './aiClient';
 
-export type AiProvider = 'litellm' | 'openai' | 'anthropic' | 'ollama';
+export type AiProvider = 'litellm' | 'openai' | 'grok' | 'anthropic' | 'ollama';
 
 export interface AiSettings {
   provider: AiProvider;
@@ -16,8 +16,14 @@ export interface AiSettings {
 export const PROVIDER_PRESETS: Record<AiProvider, { baseUrl: string; label: string }> = {
   litellm: { baseUrl: 'http://127.0.0.1:4000/v1', label: 'LiteLLM (local proxy)' },
   openai: { baseUrl: 'https://api.openai.com/v1', label: 'OpenAI' },
+  grok: { baseUrl: 'https://api.x.ai/v1', label: 'Grok (xAI)' },
   anthropic: { baseUrl: 'https://api.anthropic.com/v1', label: 'Anthropic' },
   ollama: { baseUrl: 'http://127.0.0.1:11434/v1', label: 'Ollama (local)' },
+};
+
+/** Static picker entries when the provider has no /model/info probe. */
+export const PROVIDER_MODELS: Partial<Record<AiProvider, readonly string[]>> = {
+  grok: ['grok-4.6', 'grok-4.5', 'grok-4', 'grok-3-mini'],
 };
 
 /**
@@ -74,7 +80,10 @@ export async function promptSelectAiModel(): Promise<void> {
       // Proxy unreachable or /health not supported — fall back to unannotated list.
     }
   }
-  const list = current.provider === 'litellm' ? discoverModels(LITELLM_MODELS, health) : [];
+  const list =
+    current.provider === 'litellm'
+      ? discoverModels(LITELLM_MODELS, health)
+      : [...(PROVIDER_MODELS[current.provider] ?? [])];
 
   const items: vscode.QuickPickItem[] = list.map((m) => ({
     label: `${healthIcon(health?.get(m))}${m}`,

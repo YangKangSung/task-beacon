@@ -222,9 +222,9 @@ function renderHtml(webview: vscode.Webview): string {
         <input id="aiBaseUrl" type="text" />
         <label for="aiApiKey">API Key</label>
         <input id="aiApiKey" type="password" />
-        <div class="hint">Stored in plain settings — use a local-only proxy key, not a real provider secret.</div>
+        <div class="hint">Grok: key from console.x.ai. Local proxy: use a proxy key, not a cloud secret.</div>
         <label for="aiDefaultModel">Default model</label>
-        <input id="aiDefaultModel" type="text" />
+        <input id="aiDefaultModel" type="text" placeholder="e.g. grok-4.6" />
       </div>
 
       <div class="pane" data-pane="paths">
@@ -287,6 +287,12 @@ const FIELD_IDS = [
 function formScript(): string {
   return `
   const fieldIds = ${JSON.stringify(FIELD_IDS)};
+  const providerPresets = ${JSON.stringify(
+    Object.fromEntries(
+      (Object.keys(PROVIDER_PRESETS) as AiProvider[]).map((id) => [id, PROVIDER_PRESETS[id].baseUrl])
+    )
+  )};
+  const presetUrls = new Set(Object.values(providerPresets));
   let baseline = null;
 
   function collect() {
@@ -324,6 +330,14 @@ function formScript(): string {
     document.getElementById(id).addEventListener('input', refreshDirtyState);
     document.getElementById(id).addEventListener('change', refreshDirtyState);
   }
+
+  document.getElementById('aiProvider').addEventListener('change', () => {
+    const url = document.getElementById('aiBaseUrl');
+    if (!url.value || presetUrls.has(url.value)) {
+      url.value = providerPresets[document.getElementById('aiProvider').value] || url.value;
+    }
+    refreshDirtyState();
+  });
 
   window.addEventListener('message', (event) => {
     const msg = event.data;
@@ -419,9 +433,9 @@ function renderSidebarHtml(webview: vscode.Webview): string {
       <input id="aiBaseUrl" type="text" />
       <label for="aiApiKey">API Key</label>
       <input id="aiApiKey" type="password" />
-      <div class="hint">Stored in plain settings — use a local-only proxy key, not a real provider secret.</div>
+      <div class="hint">Grok: key from console.x.ai. Local proxy: use a proxy key, not a cloud secret.</div>
       <label for="aiDefaultModel">Default model</label>
-      <input id="aiDefaultModel" type="text" />
+      <input id="aiDefaultModel" type="text" placeholder="e.g. grok-4.6" />
     </div>
   </details>
 

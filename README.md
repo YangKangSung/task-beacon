@@ -98,7 +98,7 @@ Optional:
 
 - **Jira** — set base URL and account via **Settings...** (password goes to Secret Storage)
 - **Hermes** — local profile so cron jobs appear under Agent
-- **AI** — any OpenAI-compatible endpoint (LiteLLM, OpenAI, Anthropic, Ollama)
+- **AI** — LiteLLM, OpenAI, Grok (xAI), Anthropic, or Ollama. Grok uses `https://api.x.ai/v1` and an xAI API key.
 
 Empty settings stay empty on purpose. No machine paths ship in the install.
 
@@ -115,7 +115,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | `todoView.jiraBaseUrl` | *(empty)* | Jira site, no `/browse` |
 | `todoView.hermesProfile` | `default` | Hermes profile for cron |
 | `todoView.autoRefreshSec` | `0` | Auto-refresh; `0` is off |
-| `todoView.aiProvider` | `litellm` | `litellm` / `openai` / `anthropic` / `ollama` |
+| `todoView.aiProvider` | `litellm` | `litellm` / `openai` / `grok` / `anthropic` / `ollama` |
 | `todoView.aiBaseUrl` | `http://127.0.0.1:4000/v1` | OpenAI-compatible API |
 | `todoView.aiApiKey` | `sk-local` | Use a local proxy key, not a cloud secret |
 | `todoView.aiDefaultModel` | *(empty)* | Default model id |
