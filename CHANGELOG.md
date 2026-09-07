@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.4
+
+State the product: Jira-style epics/tasks for company, personal, and agent work (including cron).
+
 ## 0.14.3
 
 Rewrite the Marketplace README: short tagline, install path, and settings people can actually use.

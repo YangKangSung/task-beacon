@@ -5,8 +5,8 @@
 <h1 align="center">Task Beacon</h1>
 
 <p align="center">
-  <strong>See Jira, wiki tasks, and Hermes cron in one sidebar.</strong><br>
-  Filter the noise. Open the item. Know what is on fire.
+  <strong>Jira’s epic / task model — for company, personal, and agent work.</strong><br>
+  Including cron. One sidebar to manage it.
 </p>
 
 <p align="center">
@@ -16,9 +16,17 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
 
-Work lives in three places: the team tracker, a local markdown wiki, and scheduled jobs. Task Beacon pulls those into one activity-bar view so you can scan, filter, and jump without switching apps.
+The idea is simple: **Jira already got epics and tasks right.** Task Beacon uses that same shape to manage three owners of work, not only the company tracker.
 
-Inspired by GitLens and Todo Tree — a beacon for *what to do next*, not comments in source.
+| Owner | What you manage |
+|-------|-----------------|
+| **Company** (Official) | Team epics and tasks — Jira plus wiki tasks tagged `official` |
+| **Personal** (Private) | Your own epics and tasks in the wiki |
+| **Agent** | Agent tasks **and** cron jobs — same epic/task tree, plus the schedule that runs them |
+
+Epics group work. Tasks are the items. Cron is the recurring agent work. The tree, table, and dashboard are that management surface — filter by owner, open the epic or the task, see what is overdue or failing.
+
+Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not comments in source.
 
 ---
 
@@ -39,15 +47,17 @@ Command Palette → Task Beacon: Settings...
 
 ## What you see
 
-Three roots in the tree. Cycle them with the filter button (All → Official → Private → Agent).
+The tree is the same epic → task outline Jira uses, split by owner. Cycle owners with the filter (All → Official → Private → Agent).
 
-| Root | What it shows | Typical source |
-|------|----------------|----------------|
-| **Official** | Team work in progress | Jira + wiki tasks tagged `official` |
-| **Private** | Personal list | Wiki tasks tagged `private` |
-| **Agent** | Automation | Wiki tasks tagged `agent-task` / `agent-cron`, plus Hermes cron |
+| Owner | Epics & tasks from | Cron |
+|-------|--------------------|------|
+| **Official** | Jira + wiki `official` | — |
+| **Private** | Wiki `private` | — |
+| **Agent** | Wiki `agent-task` / `agent-cron` | Hermes jobs under the same Agent root |
 
-Click a row to open Jira, the markdown file, or the cron script. Hover for category, due date, and notes.
+Wiki tasks can set `epic:` / `epic_link:` in frontmatter so they nest under an epic, just like Jira issues with an Epic Link. Items with no epic stay flat.
+
+Click a row to open the Jira issue, the markdown task, or the cron script.
 
 Next to the tree:
 

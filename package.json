@@ -1,8 +1,8 @@
 {
   "name": "task-beacon",
-  "displayName": "Task Beacon — AI Todo Agent",
-  "description": "AI-powered todo agent unifying Jira, LLMWiki tasks, and Hermes cron jobs in a single sidebar beacon.",
-  "version": "0.14.3",
+  "displayName": "Task Beacon",
+  "description": "Manage company, personal, and agent work — plus cron — with Jira-style epics and tasks in one sidebar.",
+  "version": "0.14.4",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
