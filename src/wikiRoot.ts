@@ -233,7 +233,12 @@ export async function useWorkspaceWikiRoot(): Promise<void> {
 }
 
 export async function refreshSetupContext(): Promise<void> {
+  const cfg = vscode.workspace.getConfiguration('todoView');
+  const grafana = cfg.get<string>('grafanaUrl', '').trim();
+  const provider = cfg.get<string>('aiProvider', 'xai');
+  const showAiHealth = Boolean(grafana) || provider === 'litellm';
   await vscode.commands.executeCommand('setContext', 'taskBeacon.needsWikiRoot', !configuredWikiRoot());
+  await vscode.commands.executeCommand('setContext', 'taskBeacon.showAiHealth', showAiHealth);
 }
 
 export async function openGetStarted(): Promise<void> {

@@ -262,6 +262,12 @@ function renderHtml(webview: vscode.Webview): string {
         <div id="aiKeyHintXai" class="hint" style="display:none">Optional override. Leave blank to use the Hermes login token.</div>
         <label for="aiDefaultModel">Default model</label>
         <input id="aiDefaultModel" type="text" placeholder="e.g. grok-4.6" />
+        <details id="grafanaDetails" style="margin-top:1em">
+          <summary style="cursor:pointer;color:var(--vscode-descriptionForeground)">On-prem model metrics (optional)</summary>
+          <label for="grafanaUrl">Grafana URL</label>
+          <input id="grafanaUrl" type="text" placeholder="Leave empty — most people do not need this" />
+          <div class="hint">Only if you switch local LiteLLM / vLLM models and watch Grafana. Empty hides the AI Health panel.</div>
+        </details>
       </div>
 
       <div class="pane" data-pane="paths">
@@ -274,8 +280,6 @@ function renderHtml(webview: vscode.Webview): string {
         <div class="hint">Obsidian vault with Tasks/*.md, or a repo with scripts/show_todo.py. First-time users: Browse, don’t type a path.</div>
         <label for="pythonPath">Python executable</label>
         <input id="pythonPath" type="text" />
-        <label for="grafanaUrl">Grafana URL</label>
-        <input id="grafanaUrl" type="text" placeholder="(leave empty to hide)" />
         <label for="autoRefreshSec">Auto-refresh interval (seconds, 0 = disabled)</label>
         <input id="autoRefreshSec" type="number" min="0" />
       </div>
@@ -383,7 +387,13 @@ function formScript(): string {
     }
     applyXaiLogin(s);
     applyWikiHint(s);
+    applyGrafanaDetails(s);
     syncProviderUi();
+  }
+
+  function applyGrafanaDetails(s) {
+    const d = document.getElementById('grafanaDetails');
+    if (d) d.open = !!s.grafanaUrl;
   }
 
   function applyWikiHint(s) {
@@ -549,6 +559,12 @@ function renderSidebarHtml(webview: vscode.Webview): string {
       <div id="aiKeyHintXai" class="hint" style="display:none">Optional override. Leave blank to use Hermes login.</div>
       <label for="aiDefaultModel">Default model</label>
       <input id="aiDefaultModel" type="text" placeholder="e.g. grok-4.6" />
+      <details id="grafanaDetails" style="margin-top:0.8em">
+        <summary style="cursor:pointer;color:var(--vscode-descriptionForeground)">On-prem model metrics (optional)</summary>
+        <label for="grafanaUrl">Grafana URL</label>
+        <input id="grafanaUrl" type="text" placeholder="Leave empty unless you use LiteLLM + Grafana" />
+        <div class="hint">Empty hides the AI Health panel. xAI / Ollama users skip this.</div>
+      </details>
     </div>
   </details>
 
@@ -564,8 +580,6 @@ function renderSidebarHtml(webview: vscode.Webview): string {
       <div class="hint">Vault with Tasks/*.md, or a repo with scripts/show_todo.py.</div>
       <label for="pythonPath">Python executable</label>
       <input id="pythonPath" type="text" />
-      <label for="grafanaUrl">Grafana URL</label>
-      <input id="grafanaUrl" type="text" placeholder="(leave empty to hide)" />
       <label for="autoRefreshSec">Auto-refresh interval (sec, 0 = disabled)</label>
       <input id="autoRefreshSec" type="number" min="0" />
     </div>

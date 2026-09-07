@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Hermes-first sidebar: Jira-style epics and tasks for company, personal, and agent work — including Hermes cron.",
-  "version": "0.14.12",
+  "version": "0.14.13",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -117,7 +117,8 @@
           "icon": "resources/beacon.svg",
           "contextualTitle": "Task Beacon",
           "initialSize": 2,
-          "visibility": "visible"
+          "visibility": "visible",
+          "when": "taskBeacon.showAiHealth"
         }
       ]
     },
@@ -508,7 +509,7 @@
         "todoView.grafanaUrl": {
           "type": "string",
           "default": "",
-          "description": "Grafana dashboard URL for the vLLM multi-server dashboard. Used to look up the Prometheus datasource and query per-model stats (running/queue, KV cache, throughput, latency p99) client-side via the datasource-proxy API. Leave empty to hide. Internal-network URLs only."
+          "description": "Optional. Only for on-prem model switching (LiteLLM / vLLM + Grafana). Leave empty — the AI Health panel stays hidden."
         },
         "todoView.hermesProfile": {
           "type": "string",

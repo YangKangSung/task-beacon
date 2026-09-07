@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.13
+
+Hide the AI Health / Grafana panel unless a Grafana URL is set or the provider is LiteLLM. Most people using xAI or Ollama do not need it.
+
 ## 0.14.12
 
 First launch shows bundled sample tasks so the tree is never empty. Existing wiki folders are unchanged. A new folder can get the same samples in one click.

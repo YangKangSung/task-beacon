@@ -122,7 +122,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | `todoView.aiBaseUrl` | `https://api.x.ai/v1` | OpenAI-compatible API |
 | `todoView.aiApiKey` | `sk-local` | Optional. xAI uses Hermes login; local proxies use a proxy key |
 | `todoView.aiDefaultModel` | *(empty)* | Default model id |
-| `todoView.grafanaUrl` | *(empty)* | Optional Grafana URL for model stats; leave empty to hide |
+| `todoView.grafanaUrl` | *(empty)* | On-prem LiteLLM/vLLM stats only; empty hides AI Health |
 
 ---
 
