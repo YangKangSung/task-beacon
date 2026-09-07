@@ -189,7 +189,17 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
     }),
 
     vscode.commands.registerCommand('todoView.selectAiModel', promptSelectAiModel),
-    vscode.commands.registerCommand('todoView.openSettings', openSettingsPanel)
+    vscode.commands.registerCommand('todoView.openSettings', openSettingsPanel),
+    vscode.commands.registerCommand('todoView.loginXai', loginXaiViaHermes)
+  );
+}
+
+function loginXaiViaHermes(): void {
+  const term = vscode.window.createTerminal({ name: 'Hermes xAI login' });
+  term.show();
+  term.sendText('hermes auth add xai-oauth');
+  void vscode.window.showInformationMessage(
+    'Complete the xAI device login in the terminal (SuperGrok / X Premium+), then click Refresh status in Settings.'
   );
 }
 

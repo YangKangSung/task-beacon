@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Hermes-first sidebar: Jira-style epics and tasks for company, personal, and agent work — including Hermes cron.",
-  "version": "0.14.7",
+  "version": "0.14.8",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -228,6 +228,11 @@
         "category": "Task Beacon"
       },
       {
+        "command": "todoView.loginXai",
+        "title": "Log in to xAI via Hermes",
+        "category": "Task Beacon"
+      },
+      {
         "command": "todoView.checkForUpdates",
         "title": "Check for Updates",
         "category": "Task Beacon"
@@ -404,7 +409,7 @@
             "Ollama"
           ],
           "default": "litellm",
-          "description": "AI model provider. xAI is first. OpenAI-compatible endpoints also work."
+          "description": "AI model provider. xAI uses Hermes login (hermes auth add xai-oauth), not a console API key."
         },
         "todoView.aiBaseUrl": {
           "type": "string",
@@ -414,12 +419,12 @@
         "todoView.aiApiKey": {
           "type": "string",
           "default": "sk-local",
-          "description": "API key for the AI provider. Stored in plain settings — use a local-only proxy key, not a real provider secret."
+          "description": "Optional API key. xAI reads Hermes xai-oauth login instead. For local proxies, use a proxy key — not a cloud secret."
         },
         "todoView.aiDefaultModel": {
           "type": "string",
           "default": "",
-          "description": "Default model id/alias sent to the provider (must match a model_list entry on the LiteLLM proxy)."
+          "description": "Default model id/alias. xAI defaults to grok-4.6. LiteLLM aliases must exist on the proxy."
         },
         "todoView.updateCheckEnabled": {
           "type": "boolean",

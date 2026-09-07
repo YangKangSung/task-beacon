@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.8
+
+xAI uses Hermes login (`hermes auth add xai-oauth` / SuperGrok or X Premium+), not a console API key. Settings shows login status and does not store the OAuth token.
+
 ## 0.14.7
 
 Say Hermes first in the Marketplace listing. Agent work is Hermes tasks + Hermes cron.

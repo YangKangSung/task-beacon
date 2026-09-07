@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as https from 'https';
 import { AiSettings } from './aiConfig';
+import { isExplicitAiKey, isHermesXaiTokenExpired, readHermesXaiAccessToken } from './hermesXaiAuth';
 
 export type SummaryKind = 'jira' | 'wiki' | 'cron' | 'insights';
 
@@ -44,7 +45,7 @@ export async function summarizeWithAi(
   });
 
   const url = `${settings.baseUrl.replace(/\/+$/, '')}/chat/completions`;
-  const raw = await postJson(url, body, settings.apiKey);
+  const raw = await postJson(url, body, bearerFor(settings), settings.provider);
 
   let parsed: unknown;
   try {
@@ -78,9 +79,10 @@ export type ModelHealthStatus = 'healthy' | 'unhealthy';
  * just skip annotating rather than blocking the model picker. */
 export async function fetchModelHealthMap(settings: AiSettings): Promise<Map<string, ModelHealthStatus>> {
   const root = settings.baseUrl.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+  const bearer = bearerFor(settings);
   const [infoRaw, healthRaw] = await Promise.all([
-    getJson(`${root}/model/info`, settings.apiKey),
-    getJson(`${root}/health`, settings.apiKey),
+    getJson(`${root}/model/info`, bearer),
+    getJson(`${root}/health`, bearer),
   ]);
 
   const info = JSON.parse(infoRaw) as {
@@ -97,6 +99,24 @@ export async function fetchModelHealthMap(settings: AiSettings): Promise<Map<str
     result.set(alias, unhealthyBackends.has(backend) ? 'unhealthy' : 'healthy');
   }
   return result;
+}
+
+function bearerFor(settings: AiSettings): string {
+  if (settings.provider !== 'xai' || isExplicitAiKey(settings.apiKey)) {
+    return settings.apiKey;
+  }
+  const token = readHermesXaiAccessToken();
+  if (!token) {
+    throw new Error(
+      'xAI uses Hermes login (SuperGrok / X Premium+), not a console API key. Run `hermes auth add xai-oauth` in a terminal, then retry.'
+    );
+  }
+  if (isHermesXaiTokenExpired(token)) {
+    throw new Error(
+      'Hermes xAI login expired. Run `hermes auth add xai-oauth` again, or open Hermes so it can refresh the token.'
+    );
+  }
+  return token;
 }
 
 function getJson(urlStr: string, apiKey: string): Promise<string> {
@@ -138,7 +158,7 @@ function getJson(urlStr: string, apiKey: string): Promise<string> {
   });
 }
 
-function postJson(urlStr: string, body: string, apiKey: string): Promise<string> {
+function postJson(urlStr: string, body: string, apiKey: string, provider?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     let url: URL;
     try {
@@ -170,6 +190,14 @@ function postJson(urlStr: string, body: string, apiKey: string): Promise<string>
         res.on('data', (d) => (data += d));
         res.on('end', () => {
           if ((res.statusCode ?? 0) >= 400) {
+            if (res.statusCode === 401 && provider === 'xai') {
+              reject(
+                new Error(
+                  'xAI rejected the Hermes login token. Run `hermes auth add xai-oauth` again, or open Hermes so it can refresh.'
+                )
+              );
+              return;
+            }
             reject(new Error(`AI request failed (${res.statusCode}): ${data.slice(0, 300)}`));
             return;
           }

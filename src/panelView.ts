@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { TodoTreeDataProvider } from './todoProvider';
 import { HistoryStore, SnapshotRecord } from './historyStore';
 import { getAiSettings } from './aiConfig';
+import { probeHermesXaiLogin } from './hermesXaiAuth';
 import { jiraBrowseUrl } from './jiraConfig';
 import { summarizeWithAi } from './aiClient';
 import { ModelStats } from './grafanaClient';
@@ -709,10 +710,19 @@ function formatSeconds(v: number): string {
 }
 
 function renderFooter(ai: ReturnType<typeof getAiSettings>): string {
+  const login = ai.provider === 'xai' ? probeHermesXaiLogin() : undefined;
+  const authHint =
+    login?.state === 'ok'
+      ? ' · Hermes login'
+      : login?.state === 'expired'
+        ? ' · login expired'
+        : login?.state === 'missing'
+          ? ' · not logged in'
+          : '';
   return `
     <div class="footer">
       <span class="ai-model" data-action="selectAiModel" title="Click to change default model">
-        <span class="ai-model-dot"></span><b>${esc(ai.defaultModel)}</b> <span class="ai-provider">(${esc(ai.provider)})</span>
+        <span class="ai-model-dot"></span><b>${esc(ai.defaultModel)}</b> <span class="ai-provider">(${esc(ai.provider)}${esc(authHint)})</span>
       </span>
       <span class="footer-actions">
         <button class="icon-btn" data-action="openAiSettings" title="AI provider settings">⚙</button>

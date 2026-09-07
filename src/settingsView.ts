@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getContext } from './extensionContext';
 import { AiProvider, PROVIDER_PRESETS, getAiSettings } from './aiConfig';
 import { jiraUsername } from './jiraConfig';
+import { HermesXaiLoginStatus, isExplicitAiKey, probeHermesXaiLogin } from './hermesXaiAuth';
 
 const JIRA_PASSWORD_SECRET_KEY = 'taskBeacon.jiraPassword';
 const GH_TOKEN_SECRET_KEY = 'taskBeacon.ghToken';
@@ -17,6 +18,7 @@ interface FormState {
   aiBaseUrl: string;
   aiApiKey: string;
   aiDefaultModel: string;
+  xaiLogin: HermesXaiLoginStatus;
   llmWikiRoot: string;
   pythonPath: string;
   grafanaUrl: string;
@@ -36,8 +38,9 @@ async function readState(): Promise<FormState> {
     jiraPassword: (await secrets.get(JIRA_PASSWORD_SECRET_KEY)) ?? '',
     aiProvider: ai.provider,
     aiBaseUrl: ai.baseUrl,
-    aiApiKey: ai.apiKey,
+    aiApiKey: isExplicitAiKey(ai.apiKey) ? ai.apiKey : '',
     aiDefaultModel: ai.defaultModel,
+    xaiLogin: probeHermesXaiLogin(),
     llmWikiRoot: cfg.get<string>('llmWikiRoot', ''),
     pythonPath: cfg.get<string>('pythonPath', 'python'),
     grafanaUrl: cfg.get<string>('grafanaUrl', ''),
@@ -61,7 +64,12 @@ async function writeState(next: FormState): Promise<void> {
 
   await cfg.update('aiProvider', next.aiProvider, target);
   await cfg.update('aiBaseUrl', next.aiBaseUrl.trim() || PROVIDER_PRESETS[next.aiProvider].baseUrl, target);
-  await cfg.update('aiApiKey', next.aiApiKey, target);
+  const nextKey = next.aiApiKey.trim();
+  await cfg.update(
+    'aiApiKey',
+    next.aiProvider === 'xai' ? nextKey : nextKey || 'sk-local',
+    target
+  );
   await cfg.update('aiDefaultModel', next.aiDefaultModel.trim(), target);
 
   await cfg.update('llmWikiRoot', next.llmWikiRoot.trim(), target);
@@ -121,7 +129,10 @@ function wireSettingsWebview(webview: vscode.Webview): void {
       await writeState(msg.payload as FormState);
       vscode.window.setStatusBarMessage('Beacon: settings saved', 2500);
       webview.postMessage({ command: 'saved', payload: await readState() });
-    } else if (msg.command === 'requestState') {
+    } else if (msg.command === 'requestState' || msg.command === 'refreshXaiLogin') {
+      webview.postMessage({ command: 'state', payload: await readState() });
+    } else if (msg.command === 'loginXai') {
+      await vscode.commands.executeCommand('todoView.loginXai');
       webview.postMessage({ command: 'state', payload: await readState() });
     }
   });
@@ -186,6 +197,13 @@ function renderHtml(webview: vscode.Webview): string {
   .hint { font-size: 0.8em; color: var(--vscode-descriptionForeground); margin-top: 0.2em; }
   .row { display: flex; align-items: center; gap: 0.5em; margin-top: 0.8em; }
   .row label { margin: 0; }
+  .xai-actions { display: flex; gap: 0.5em; margin: 0.55em 0 0.2em; flex-wrap: wrap; }
+  button.secondary { padding: 5px 12px; border-radius: 3px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+  button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
+  .auth-status { padding: 0.5em 0.7em; border-radius: 3px; margin: 0.55em 0 0.2em; font-size: 0.85em; border: 1px solid var(--vscode-widget-border); }
+  .auth-status.ok { color: var(--vscode-charts-green, #89d185); }
+  .auth-status.expired { color: var(--vscode-charts-orange, #d18616); }
+  .auth-status.missing { color: var(--vscode-descriptionForeground); }
 
   .actions { position: sticky; bottom: 0; background: var(--vscode-editor-background); padding: 0.7em 1.6em; border-top: 1px solid var(--vscode-widget-border); display: flex; align-items: center; gap: 0.8em; flex-shrink: 0; }
   button.save { padding: 5px 14px; border-radius: 3px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
@@ -220,9 +238,18 @@ function renderHtml(webview: vscode.Webview): string {
         <select id="aiProvider">${providerOptions}</select>
         <label for="aiBaseUrl">Base URL</label>
         <input id="aiBaseUrl" type="text" />
+        <div id="xaiAuthBox" style="display:none">
+          <div id="xaiAuthStatus" class="auth-status missing">Checking Hermes login…</div>
+          <div class="xai-actions">
+            <button type="button" class="secondary" id="xaiLogin">Log in with Hermes</button>
+            <button type="button" class="secondary" id="xaiRefresh">Refresh status</button>
+          </div>
+          <div class="hint">Same SuperGrok / X Premium+ login as Hermes. Run once: <code>hermes auth add xai-oauth</code>. No console API key.</div>
+        </div>
         <label for="aiApiKey">API Key</label>
         <input id="aiApiKey" type="password" />
-        <div class="hint">Grok: key from console.x.ai. Local proxy: use a proxy key, not a cloud secret.</div>
+        <div id="aiKeyHintDefault" class="hint">Local proxy: use a proxy key, not a cloud secret.</div>
+        <div id="aiKeyHintXai" class="hint" style="display:none">Optional override. Leave blank to use the Hermes login token.</div>
         <label for="aiDefaultModel">Default model</label>
         <input id="aiDefaultModel" type="text" placeholder="e.g. grok-4.6" />
       </div>
@@ -306,6 +333,32 @@ function formScript(): string {
     return v;
   }
 
+  function applyXaiLogin(s) {
+    const el = document.getElementById('xaiAuthStatus');
+    if (!el) return;
+    const st = s.xaiLogin || { state: 'missing' };
+    el.className = 'auth-status ' + st.state;
+    if (st.state === 'ok') {
+      el.textContent = st.expiresAt
+        ? 'Hermes login active · expires ' + st.expiresAt
+        : 'Hermes login active';
+    } else if (st.state === 'expired') {
+      el.textContent = 'Hermes login expired — log in again';
+    } else {
+      el.textContent = 'Not logged in via Hermes';
+    }
+  }
+
+  function syncProviderUi() {
+    const isXai = document.getElementById('aiProvider').value === 'xai';
+    const box = document.getElementById('xaiAuthBox');
+    const hintDef = document.getElementById('aiKeyHintDefault');
+    const hintXai = document.getElementById('aiKeyHintXai');
+    if (box) box.style.display = isXai ? 'block' : 'none';
+    if (hintDef) hintDef.style.display = isXai ? 'none' : 'block';
+    if (hintXai) hintXai.style.display = isXai ? 'block' : 'none';
+  }
+
   function applyState(s) {
     for (const id of fieldIds) {
       const el = document.getElementById(id);
@@ -313,6 +366,8 @@ function formScript(): string {
       if (el.type === 'checkbox') el.checked = !!s[id];
       else el.value = s[id];
     }
+    applyXaiLogin(s);
+    syncProviderUi();
   }
 
   function refreshDirtyState() {
@@ -332,12 +387,25 @@ function formScript(): string {
   }
 
   document.getElementById('aiProvider').addEventListener('change', () => {
+    const provider = document.getElementById('aiProvider').value;
     const url = document.getElementById('aiBaseUrl');
     if (!url.value || presetUrls.has(url.value)) {
-      url.value = providerPresets[document.getElementById('aiProvider').value] || url.value;
+      url.value = providerPresets[provider] || url.value;
     }
+    const model = document.getElementById('aiDefaultModel');
+    if (provider === 'xai' && !model.value) model.value = 'grok-4.6';
+    syncProviderUi();
     refreshDirtyState();
   });
+
+  const xaiLoginBtn = document.getElementById('xaiLogin');
+  if (xaiLoginBtn) {
+    xaiLoginBtn.addEventListener('click', () => vscode.postMessage({ command: 'loginXai' }));
+  }
+  const xaiRefreshBtn = document.getElementById('xaiRefresh');
+  if (xaiRefreshBtn) {
+    xaiRefreshBtn.addEventListener('click', () => vscode.postMessage({ command: 'refreshXaiLogin' }));
+  }
 
   window.addEventListener('message', (event) => {
     const msg = event.data;
@@ -401,6 +469,13 @@ function renderSidebarHtml(webview: vscode.Webview): string {
   .hint { font-size: 0.76em; color: var(--vscode-descriptionForeground); margin-top: 0.2em; }
   .row { display: flex; align-items: center; gap: 0.5em; margin-top: 0.7em; }
   .row label { margin: 0; }
+  .xai-actions { display: flex; gap: 0.45em; margin: 0.5em 0 0.15em; flex-wrap: wrap; }
+  button.secondary { padding: 4px 10px; border-radius: 3px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+  button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
+  .auth-status { padding: 0.45em 0.6em; border-radius: 3px; margin: 0.5em 0 0.15em; font-size: 0.8em; border: 1px solid var(--vscode-widget-border); }
+  .auth-status.ok { color: var(--vscode-charts-green, #89d185); }
+  .auth-status.expired { color: var(--vscode-charts-orange, #d18616); }
+  .auth-status.missing { color: var(--vscode-descriptionForeground); }
 
   .actions { position: fixed; bottom: 0; left: 0; right: 0; background: var(--vscode-sideBar-background, var(--vscode-editor-background)); padding: 0.6em 0.9em; border-top: 1px solid var(--vscode-widget-border); display: flex; align-items: center; gap: 0.7em; }
   button.save { padding: 4px 12px; border-radius: 3px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
@@ -431,9 +506,18 @@ function renderSidebarHtml(webview: vscode.Webview): string {
       <select id="aiProvider">${providerOptions}</select>
       <label for="aiBaseUrl">Base URL</label>
       <input id="aiBaseUrl" type="text" />
+      <div id="xaiAuthBox" style="display:none">
+        <div id="xaiAuthStatus" class="auth-status missing">Checking Hermes login…</div>
+        <div class="xai-actions">
+          <button type="button" class="secondary" id="xaiLogin">Log in with Hermes</button>
+          <button type="button" class="secondary" id="xaiRefresh">Refresh status</button>
+        </div>
+        <div class="hint">Same SuperGrok / X Premium+ login as Hermes. No console API key.</div>
+      </div>
       <label for="aiApiKey">API Key</label>
       <input id="aiApiKey" type="password" />
-      <div class="hint">Grok: key from console.x.ai. Local proxy: use a proxy key, not a cloud secret.</div>
+      <div id="aiKeyHintDefault" class="hint">Local proxy: use a proxy key, not a cloud secret.</div>
+      <div id="aiKeyHintXai" class="hint" style="display:none">Optional override. Leave blank to use Hermes login.</div>
       <label for="aiDefaultModel">Default model</label>
       <input id="aiDefaultModel" type="text" placeholder="e.g. grok-4.6" />
     </div>

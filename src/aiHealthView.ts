@@ -177,10 +177,14 @@ function renderModelList(
   healthError: string | undefined
 ): string {
   if (provider !== 'litellm') {
+    const xaiNote =
+      provider === 'xai'
+        ? ' xAI uses Hermes login (`hermes auth add xai-oauth`), not a console API key.'
+        : '';
     return `
       <div class="section card">
         <div class="section-head"><h3><span class="section-icon">▤</span>Registry</h3></div>
-        <p class="empty">Health probe only supported for the LiteLLM provider (current: ${esc(provider)}).</p>
+        <p class="empty">Health probe only supported for the LiteLLM provider (current: ${esc(provider)}).${esc(xaiNote)}</p>
       </div>
     `;
   }

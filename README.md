@@ -102,7 +102,7 @@ Older `veda-task` / `veda-cron` values still load; they show as `agent-task` / `
 Optional:
 
 - **Jira** — set base URL and account via **Settings...** (password goes to Secret Storage)
-- **AI** — xAI (Grok) first, then LiteLLM, OpenAI, Anthropic, or Ollama. xAI uses `https://api.x.ai/v1`.
+- **AI** — xAI (Grok) first, then LiteLLM, OpenAI, Anthropic, or Ollama. xAI uses the same Hermes login as SuperGrok / X Premium+ (`hermes auth add xai-oauth`), not a console API key.
 
 Empty settings stay empty on purpose. No machine paths ship in the install.
 
@@ -121,7 +121,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | `todoView.autoRefreshSec` | `0` | Auto-refresh; `0` is off |
 | `todoView.aiProvider` | `litellm` | `xai` / `litellm` / `openai` / `anthropic` / `ollama` |
 | `todoView.aiBaseUrl` | `http://127.0.0.1:4000/v1` | OpenAI-compatible API |
-| `todoView.aiApiKey` | `sk-local` | Use a local proxy key, not a cloud secret |
+| `todoView.aiApiKey` | `sk-local` | Optional. xAI uses Hermes login; local proxies use a proxy key |
 | `todoView.aiDefaultModel` | *(empty)* | Default model id |
 | `todoView.grafanaUrl` | *(empty)* | Optional Grafana URL for model stats; leave empty to hide |
 
@@ -136,6 +136,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | **Task Beacon: Cycle Filter** | All → Official → Private → Agent |
 | **Task Beacon: Search / Filter Tree...** | Filter the tree |
 | **Task Beacon: Select AI Model...** | Pick a model when AI is configured |
+| **Task Beacon: Log in to xAI via Hermes** | Device login (`hermes auth add xai-oauth`) |
 
 ---
 

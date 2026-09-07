@@ -53,11 +53,13 @@ function normalizeProvider(raw: string): AiProvider {
 
 export function getAiSettings(): AiSettings {
   const cfg = vscode.workspace.getConfiguration('todoView');
+  const provider = normalizeProvider(cfg.get<string>('aiProvider', 'litellm'));
+  const storedModel = cfg.get<string>('aiDefaultModel', '');
   return {
-    provider: normalizeProvider(cfg.get<string>('aiProvider', 'litellm')),
+    provider,
     baseUrl: cfg.get<string>('aiBaseUrl', PROVIDER_PRESETS.litellm.baseUrl),
     apiKey: cfg.get<string>('aiApiKey', 'sk-local'),
-    defaultModel: cfg.get<string>('aiDefaultModel', ''),
+    defaultModel: storedModel || (provider === 'xai' ? 'grok-4.6' : ''),
   };
 }
 
