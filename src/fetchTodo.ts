@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { spawn } from 'child_process';
-import { ShowTodoFull, HermesJobsFile } from './types';
+import { ShowTodoFull, HermesJobsFile, WikiChannel, WikiTask, normalizeCategory } from './types';
 import { jiraAuthEnv, jiraBaseUrl } from './jiraConfig';
 
 function config() {
@@ -77,12 +77,27 @@ export async function fetchTodoFull(): Promise<ShowTodoFull> {
         return;
       }
       try {
-        resolve(JSON.parse(stdout) as ShowTodoFull);
+        resolve(normalizeFetchedTodo(JSON.parse(stdout) as ShowTodoFull));
       } catch (e) {
         reject(new Error(`Failed to parse show_todo.py output: ${(e as Error).message}\n${stdout.slice(0, 500)}`));
       }
     });
   });
+}
+
+function mapWikiTasks(wiki: WikiChannel): WikiChannel {
+  const map = (t: WikiTask): WikiTask => ({ ...t, category: normalizeCategory(t.category) || t.category });
+  return {
+    ...wiki,
+    pending: wiki.pending.map(map),
+    active: wiki.active.map(map),
+    completed: wiki.completed.map(map),
+    cancelled: wiki.cancelled.map(map),
+  };
+}
+
+function normalizeFetchedTodo(data: ShowTodoFull): ShowTodoFull {
+  return data.wiki ? { ...data, wiki: mapWikiTasks(data.wiki) } : data;
 }
 
 /** show_todo.py's cron channel doesn't carry the job's `script` field

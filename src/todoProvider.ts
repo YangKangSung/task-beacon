@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { fetchTodoFull, readWikiTaskDetail } from './fetchTodo';
-import { CronJob, FilterMode, JiraIssue, ShowTodoFull, TodoNode, WikiTask } from './types';
+import { CronJob, FilterMode, JiraIssue, ShowTodoFull, TodoNode, WikiTask, normalizeCategory } from './types';
 
 const ROOT_OFFICIAL = 'root-official';
 const ROOT_PRIVATE = 'root-private';
@@ -156,12 +156,12 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
     const data = this.cache!;
 
     // Category-axis split of wiki tasks. show_todo.py tags each task with
-    // category ∈ {official, private, agent task/cron (wire: veda-*), unknown}. We fold
-    // 'official' wiki tasks under the Jira root and 'veda-task' under Agent.
+    // category ∈ {official, private, agent-task, agent-cron, unknown}. We fold
+    // 'official' wiki tasks under the Jira root and agent-* under Agent.
     // 'private' and 'unknown' land in the Private root.
     const wikiOfficial = data.wiki.ok ? filterByCategory(data.wiki, 'official') : emptyWiki();
     const wikiPrivate = data.wiki.ok ? filterByCategory(data.wiki, 'private', 'unknown', '') : emptyWiki();
-    const wikiAgent = data.wiki.ok ? filterByCategory(data.wiki, 'veda-task', 'veda-cron') : emptyWiki();
+    const wikiAgent = data.wiki.ok ? filterByCategory(data.wiki, 'agent-task', 'agent-cron') : emptyWiki();
 
     const jiraCount = data.jira.ok ? data.jira.total : 0;
     const overdue = data.jira.ok ? countOverdue(data.jira.in_progress.concat(data.jira.to_do)) : 0;
@@ -372,7 +372,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
     return nodes;
   }
 
-  /** Agent bucket: agent (veda-*) wiki tasks + Hermes cron jobs, split into two
+  /** Agent bucket: agent-* wiki tasks + Hermes cron jobs, split into two
    * top-level subheads ('Tasks' and 'Cron') so the two automation streams
    * stay visually distinct while sharing the same category axis. */
   private agentChildren(): TodoNode[] {
@@ -380,7 +380,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
     const cron = this.cache!.cron;
     const nodes: TodoNode[] = [];
 
-    // --- Tasks subgroup (wiki category = veda-task / veda-cron) ---
+    // --- Tasks subgroup (wiki category = agent-task / agent-cron) ---
     if (!wiki.ok) {
       nodes.push({
         kind: 'error',
@@ -390,7 +390,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
         iconColor: 'errorForeground',
       });
     } else {
-      const agent = filterByCategory(wiki, 'veda-task', 'veda-cron');
+      const agent = filterByCategory(wiki, 'agent-task', 'agent-cron');
       const active = agent.active.filter((t) => this.matchesSearch(`${t.title} ${t.note}`));
       const pending = agent.pending.filter((t) => this.matchesSearch(`${t.title} ${t.note}`));
       const taskChildren: TodoNode[] = [];
@@ -506,7 +506,7 @@ function filterByCategory(
   ...allowed: string[]
 ): import('./types').WikiChannel {
   const wants = new Set(allowed);
-  const keep = (t: WikiTask) => wants.has(t.category ?? '');
+  const keep = (t: WikiTask) => wants.has(normalizeCategory(t.category));
   return {
     ok: wiki.ok,
     error: wiki.error ?? null,
@@ -828,7 +828,9 @@ function categoryIcon(category: string): string {
   switch (category) {
     case 'official': return '$(briefcase)';
     case 'private': return '$(home)';
+    case 'agent-task':
     case 'veda-task': return '$(robot)';
+    case 'agent-cron':
     case 'veda-cron': return '$(clock)';
     case 'unknown': return '$(question)';
     default: return '$(tag)';

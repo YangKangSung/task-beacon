@@ -2,12 +2,14 @@
 
 VS Code extension unifying **Jira** (Official), **LLMWiki tasks** (Private), and **Hermes Cron** (Automated) into a single sidebar beacon.
 
+Install from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=YangKangSung.task-beacon) or search **Task Beacon** in the Extensions view (`Ctrl+Shift+X`).
+
 Inspired by GitLens and todo-tree, extended with an AI-powered dashboard for tactical decision support.
 
 ## Features
 
 - **Sidebar tree** — collapsible subheads for Jira / LLMWiki / Cron with cycle-filter
-- **4-category classification** (2026-07-25) — every LLMWiki task is tagged with one of `official` / `private` / `veda-task` / `veda-cron` (or `unknown`); visible as a `[category]` prefix on the task label and as a themed icon (💼/🏠/🤖/🕒) in the hover tooltip
+- **4-category classification** (2026-07-25) — every LLMWiki task is tagged with one of `official` / `private` / `agent-task` / `agent-cron` (or `unknown`); visible as a `[category]` prefix on the task label and as a themed icon (💼/🏠/🤖/🕒) in the hover tooltip
 - **Summary sub-panel** — details view for selected item + AI summary
 - **Table view** — sortable, filterable webview grid
 - **Chart view** — trend lines from local snapshot history (JSONL, append-only)
@@ -16,14 +18,14 @@ Inspired by GitLens and todo-tree, extended with an AI-powered dashboard for tac
 
 ### 4-category classification
 
-Each LLMWiki task file (`tasks/*.md`) carries a `category:` frontmatter field, populated by `show_todo.py` from the file's frontmatter (with inline `**[Category]**` marker fallback). The 4-category system was established 2026-07-25 to separate master's personal tasks from Veda-managed automation work:
+Each LLMWiki task file (`tasks/*.md`) carries a `category:` frontmatter field, populated by `show_todo.py` from the file's frontmatter (with inline `**[Category]**` marker fallback). The 4-category system was established 2026-07-25 to separate personal tasks from agent-managed automation work:
 
 | Category | Icon | Source | Meaning |
 |----------|------|--------|---------|
 | `official` | 💼 `$(briefcase)` | Jira team work | Company/team tasks |
-| `private` | 🏠 `$(home)` | master personal portfolio | Personal projects |
-| `veda-task` | 🤖 `$(robot)` | Veda self-registered | Agent-managed tasks |
-| `veda-cron` | 🕒 `$(clock)` | cron/watchdog patterns | Automated routines |
+| `private` | 🏠 `$(home)` | personal portfolio | Personal projects |
+| `agent-task` | 🤖 `$(robot)` | agent self-registered | Agent-managed tasks |
+| `agent-cron` | 🕒 `$(clock)` | cron/watchdog patterns | Automated routines |
 
 Classification rules live in `show_todo.py` (`_read_task_category`); this extension just consumes the result. To re-classify a task, edit the file's `category:` frontmatter and refresh the sidebar.
 

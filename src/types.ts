@@ -24,8 +24,8 @@ export interface WikiTask {
   note: string;
   epicKey?: string;
   /** 4-category classification from tasks/*.md frontmatter.
-   * Added 2026-07-25 to mirror show_todo.py category system.
-   * Values: 'official' | 'private' | 'veda-task' | 'veda-cron' | 'unknown' | ''
+   * Values: 'official' | 'private' | 'agent-task' | 'agent-cron' | 'unknown' | ''
+   * Incoming `veda-task` / `veda-cron` are normalized to agent-* at fetch.
    */
   category?: string;
 }
@@ -73,6 +73,13 @@ export type TodoNodeKind =
   | 'error';
 
 export type FilterMode = 'all' | 'official' | 'private' | 'agent';
+
+/** Public category ids. Older wiki frontmatter used veda-task / veda-cron. */
+export function normalizeCategory(category: string | undefined): string {
+  if (category === 'veda-task') return 'agent-task';
+  if (category === 'veda-cron') return 'agent-cron';
+  return category ?? '';
+}
 
 export interface TodoNode {
   kind: TodoNodeKind;

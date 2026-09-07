@@ -25,9 +25,9 @@ npx vsce package \
 
 VSIX="${NAME}-${VERSION}.vsix"
 code --install-extension "$VSIX" --force
-echo "installed (stable): $(code --list-extensions --show-versions | grep "^ksyang.${NAME}@")"
+echo "installed (stable): $(code --list-extensions --show-versions | grep "^YangKangSung.${NAME}@")"
 
 if command -v code-insiders &> /dev/null; then
   code-insiders --install-extension "$VSIX" --force
-  echo "installed (insiders): $(code-insiders --list-extensions --show-versions | grep "^ksyang.${NAME}@")"
+  echo "installed (insiders): $(code-insiders --list-extensions --show-versions | grep "^YangKangSung.${NAME}@")"
 fi

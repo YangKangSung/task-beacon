@@ -1,0 +1,57 @@
+name: vsce-publish
+
+# Publishes when package.json version changes.
+# Secret: VSCE_PAT (Marketplace Manage). Missing secret → skip, do not fail the repo.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: github.repository == 'YangKangSung/task-beacon'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: skip without secret
+        id: pat
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "VSCE_PAT secret missing — skip"
+          else
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: compare gallery
+        if: steps.pat.outputs.has == 'true'
+        id: cmp
+        run: |
+          WANT=$(node -p "require('./package.json').version")
+          LIVE=$(npx --yes @vscode/vsce show YangKangSung.task-beacon 2>/dev/null | awk '/Version:/{print $2; exit}')
+          echo "want=$WANT live=${LIVE:-none}"
+          echo "want=$WANT" >> "$GITHUB_OUTPUT"
+          if [ -n "$LIVE" ] && [ "$LIVE" = "$WANT" ]; then
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "newer=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: publish
+        if: steps.pat.outputs.has == 'true' && steps.cmp.outputs.newer == 'true'
+        env:
+          NODE_ENV: development
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          npm ci
+          npx tsc -p tsconfig.json --noEmit
+          npx @vscode/vsce publish -p "$VSCE_PAT" --no-dependencies \
+            --baseContentUrl https://github.com/YangKangSung/task-beacon/raw/main \
+            --baseImagesUrl https://github.com/YangKangSung/task-beacon/raw/main
+          npx @vscode/vsce show YangKangSung.task-beacon | head -20

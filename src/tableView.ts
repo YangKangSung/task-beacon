@@ -18,7 +18,7 @@ type Row = {
   failing: boolean;
   sortKey: number;
   /** 4-category classification (added 2026-07-25).
-   * Values: 'official' | 'private' | 'veda-task' | 'veda-cron' | 'unknown' | undefined */
+   * Values: 'official' | 'private' | 'agent-task' | 'agent-cron' | 'unknown' | undefined */
   category?: string;
 };
 

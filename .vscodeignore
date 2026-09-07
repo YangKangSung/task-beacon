@@ -12,3 +12,6 @@ tmp_*
 *.vsix
 *.log
 ship.sh
+AI-RECOVERY.md
+SECURITY.md
+graphify-out/**

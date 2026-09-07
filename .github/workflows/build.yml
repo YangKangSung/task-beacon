@@ -1,0 +1,22 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    if: github.repository == 'YangKangSung/task-beacon'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: install
+        env:
+          NODE_ENV: development
+        run: npm ci
+      - run: npx tsc -p tsconfig.json --noEmit
+      - run: npm run build

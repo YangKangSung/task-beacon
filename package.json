@@ -2,10 +2,12 @@
   "name": "task-beacon",
   "displayName": "Task Beacon — AI Todo Agent",
   "description": "AI-powered todo agent unifying Jira, LLMWiki tasks, and Hermes cron jobs in a single sidebar beacon.",
-  "version": "0.14.1",
-  "publisher": "ksyang",
-  "private": true,
+  "version": "0.14.2",
+  "publisher": "YangKangSung",
+  "author": "YangKangSung (ksyang)",
+  "private": false,
   "license": "MIT",
+  "pricing": "Free",
   "repository": {
     "type": "git",
     "url": "https://github.com/YangKangSung/task-beacon.git"
@@ -19,8 +21,22 @@
   },
   "categories": [
     "Other",
-    "AI"
+    "Visualization"
   ],
+  "keywords": [
+    "todo",
+    "jira",
+    "cron",
+    "dashboard",
+    "ai",
+    "tasks",
+    "hermes",
+    "wiki"
+  ],
+  "galleryBanner": {
+    "color": "#0F172A",
+    "theme": "dark"
+  },
   "icon": "resources/icon.png",
   "activationEvents": [
     "onView:todoView"
@@ -421,13 +437,14 @@
     "vscode:prepublish": "node esbuild.js --production",
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
-    "package": "vsce package --baseContentUrl https://github.com/YangKangSung/task-beacon/raw/main --baseImagesUrl https://github.com/YangKangSung/task-beacon/raw/main"
+    "package": "vsce package --baseContentUrl https://github.com/YangKangSung/task-beacon/raw/main --baseImagesUrl https://github.com/YangKangSung/task-beacon/raw/main",
+    "publish": "vsce publish --baseContentUrl https://github.com/YangKangSung/task-beacon/raw/main --baseImagesUrl https://github.com/YangKangSung/task-beacon/raw/main"
   },
   "devDependencies": {
     "@types/vscode": "^1.80.0",
     "@types/node": "^20.0.0",
     "typescript": "^5.4.0",
     "esbuild": "^0.20.0",
-    "@vscode/vsce": "^2.24.0"
+    "@vscode/vsce": "^3.6.0"
   }
 }
