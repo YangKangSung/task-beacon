@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.7
+
+Say Hermes first in the Marketplace listing. Agent work is Hermes tasks + Hermes cron.
+
 ## 0.14.6
 
 Put xAI (Grok) first in the provider list. `grok` still maps to `xai`. GitHub Sponsors link on the Marketplace listing.

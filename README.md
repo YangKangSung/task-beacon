@@ -5,8 +5,8 @@
 <h1 align="center">Task Beacon</h1>
 
 <p align="center">
-  <strong>Jira’s epic / task model — for company, personal, and agent work.</strong><br>
-  Including cron. One sidebar to manage it.
+  <strong>Hermes-first task board in VS Code.</strong><br>
+  Jira’s epic / task model for company, personal, and Hermes agent work — including cron.
 </p>
 
 <p align="center">
@@ -17,15 +17,17 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
 
-The idea is simple: **Jira already got epics and tasks right.** Task Beacon uses that same shape to manage three owners of work, not only the company tracker.
+[Hermes](https://github.com/NousResearch/hermes-agent) is the agent runtime this board is built around. Task Beacon does not replace Hermes. It is the epic / task view for work Hermes already owns — plus company Jira and personal wiki tasks in the same tree.
+
+The idea is simple: **Jira already got epics and tasks right.** Use that shape for three owners, with Hermes first.
 
 | Owner | What you manage |
 |-------|-----------------|
 | **Company** (Official) | Team epics and tasks — Jira plus wiki tasks tagged `official` |
 | **Personal** (Private) | Your own epics and tasks in the wiki |
-| **Agent** | Agent tasks **and** cron jobs — same epic/task tree, plus the schedule that runs them |
+| **Agent** (Hermes) | Hermes agent tasks **and** Hermes cron — same epic/task tree |
 
-Epics group work. Tasks are the items. Cron is the recurring agent work. The tree, table, and dashboard are that management surface — filter by owner, open the epic or the task, see what is overdue or failing.
+Epics group work. Tasks are the items. Hermes cron is the recurring agent work. The tree, table, and dashboard are that management surface — filter by owner, open the epic or the task, see what is overdue or failing.
 
 Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not comments in source.
 
@@ -37,8 +39,9 @@ Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not commen
 2. Click the beacon icon in the Activity Bar (or open the **Task Beacon** panel).
 3. Run **Task Beacon: Settings...** from the Command Palette.
 4. Set **LLMWiki repo root** to a folder that contains `scripts/show_todo.py` and `tasks/`.
+5. If Hermes is installed locally, set **Hermes profile** (default `default`) so cron jobs show under Agent.
 
-That is enough for wiki tasks. Add Jira and AI only if you want them.
+Wiki tasks work without Hermes. Hermes cron is the reason Agent exists.
 
 ```text
 Command Palette → Task Beacon: Settings...
@@ -54,7 +57,7 @@ The tree is the same epic → task outline Jira uses, split by owner. Cycle owne
 |-------|--------------------|------|
 | **Official** | Jira + wiki `official` | — |
 | **Private** | Wiki `private` | — |
-| **Agent** | Wiki `agent-task` / `agent-cron` | Hermes jobs under the same Agent root |
+| **Agent** | Wiki `agent-task` / `agent-cron` | Live Hermes cron (`profiles/<name>/cron/`) |
 
 Wiki tasks can set `epic:` / `epic_link:` in frontmatter so they nest under an epic, just like Jira issues with an Epic Link. Items with no epic stay flat.
 
@@ -92,13 +95,13 @@ Older `veda-task` / `veda-cron` values still load; they show as `agent-task` / `
 | Need | Why |
 |------|-----|
 | VS Code 1.80+ | Extension host |
+| [Hermes](https://github.com/NousResearch/hermes-agent) | Agent runtime. Cron is read from the live profile |
 | Python 3 | Runs `show_todo.py` for Jira + wiki |
 | A wiki folder | Must include `scripts/show_todo.py` |
 
 Optional:
 
 - **Jira** — set base URL and account via **Settings...** (password goes to Secret Storage)
-- **Hermes** — local profile so cron jobs appear under Agent
 - **AI** — xAI (Grok) first, then LiteLLM, OpenAI, Anthropic, or Ollama. xAI uses `https://api.x.ai/v1`.
 
 Empty settings stay empty on purpose. No machine paths ship in the install.
