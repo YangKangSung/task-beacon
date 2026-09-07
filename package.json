@@ -1,0 +1,433 @@
+{
+  "name": "task-beacon",
+  "displayName": "Task Beacon — AI Todo Agent",
+  "description": "AI-powered todo agent unifying Jira, LLMWiki tasks, and Hermes cron jobs in a single sidebar beacon.",
+  "version": "0.14.1",
+  "publisher": "ksyang",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YangKangSung/task-beacon.git"
+  },
+  "homepage": "https://github.com/YangKangSung/task-beacon",
+  "bugs": {
+    "url": "https://github.com/YangKangSung/task-beacon/issues"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "AI"
+  ],
+  "icon": "resources/icon.png",
+  "activationEvents": [
+    "onView:todoView"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "todo-view",
+          "title": "Task Beacon",
+          "icon": "resources/beacon.svg"
+        }
+      ],
+      "panel": [
+        {
+          "id": "todoViewPanel",
+          "title": "Task Beacon",
+          "icon": "resources/beacon.svg"
+        }
+      ]
+    },
+    "views": {
+      "todo-view": [
+        {
+          "id": "todoView",
+          "name": "Tree",
+          "icon": "resources/beacon.svg"
+        },
+        {
+          "type": "webview",
+          "id": "todoView.summary",
+          "name": "Summary",
+          "icon": "$(preview)"
+        },
+        {
+          "type": "webview",
+          "id": "todoView.table",
+          "name": "Table",
+          "icon": "$(table)"
+        },
+        {
+          "type": "webview",
+          "id": "todoView.chart",
+          "name": "Chart",
+          "icon": "$(graph-line)"
+        },
+        {
+          "type": "webview",
+          "id": "todoView.cronChart",
+          "name": "Cron Runs",
+          "icon": "$(pulse)"
+        },
+        {
+          "type": "webview",
+          "id": "todoView.settingsSidebar",
+          "name": "Settings",
+          "icon": "$(settings-gear)"
+        }
+      ],
+      "todoViewPanel": [
+        {
+          "type": "webview",
+          "id": "todoView.panelDashboard",
+          "name": "Dashboard",
+          "icon": "resources/beacon.svg",
+          "contextualTitle": "Task Beacon",
+          "initialSize": 4,
+          "visibility": "visible"
+        },
+        {
+          "type": "webview",
+          "id": "todoView.panelAiHealth",
+          "name": "AI Health",
+          "icon": "resources/beacon.svg",
+          "contextualTitle": "Task Beacon",
+          "initialSize": 2,
+          "visibility": "visible"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "todoView.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.cycleFilter",
+        "title": "Cycle Filter (All → Official → Private → Agent)",
+        "icon": "$(filter)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.filterAll",
+        "title": "Filter: All",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.filterOfficial",
+        "title": "Filter: Official",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.filterPrivate",
+        "title": "Filter: Private",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.filterAgent",
+        "title": "Filter: Agent",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.search",
+        "title": "Search / Filter Tree...",
+        "icon": "$(search)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.clearSearch",
+        "title": "Clear Search Filter",
+        "icon": "$(clear-all)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.openJira",
+        "title": "Open in Jira",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "todoView.openEpic",
+        "title": "Open Epic in Jira",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "todoView.openTaskFile",
+        "title": "Open Task File",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "todoView.openCronScript",
+        "title": "Open Cron Script",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "todoView.pauseCron",
+        "title": "Pause Cron Job",
+        "icon": "$(debug-pause)"
+      },
+      {
+        "command": "todoView.resumeCron",
+        "title": "Resume Cron Job",
+        "icon": "$(play)"
+      },
+      {
+        "command": "todoView.triggerCronRun",
+        "title": "Run Now / Replay Cron Job",
+        "icon": "$(debug-rerun)"
+      },
+      {
+        "command": "todoView.copyId",
+        "title": "Copy ID"
+      },
+      {
+        "command": "todoView.changeStatus",
+        "title": "Change Status"
+      },
+      {
+        "command": "todoView.showDetails",
+        "title": "Show Details",
+        "icon": "$(preview)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.selectAiModel",
+        "title": "Select AI Model...",
+        "icon": "$(hubot)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.openSettings",
+        "title": "Settings...",
+        "icon": "$(settings-gear)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.checkForUpdates",
+        "title": "Check for Updates",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.setUpdateCheckToken",
+        "title": "Set Update-Check Token...",
+        "category": "Task Beacon"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "todoView.openSettings",
+          "when": "view == todoView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "todoView.search",
+          "when": "view == todoView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "todoView.cycleFilter",
+          "when": "view == todoView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "todoView.refresh",
+          "when": "view == todoView",
+          "group": "navigation@4"
+        },
+        {
+          "command": "todoView.selectAiModel",
+          "when": "view == todoView",
+          "group": "navigation@5"
+        },
+        {
+          "command": "todoView.filterAll",
+          "when": "view == todoView",
+          "group": "1_filter@1"
+        },
+        {
+          "command": "todoView.filterOfficial",
+          "when": "view == todoView",
+          "group": "1_filter@2"
+        },
+        {
+          "command": "todoView.filterPrivate",
+          "when": "view == todoView",
+          "group": "1_filter@3"
+        },
+        {
+          "command": "todoView.filterAgent",
+          "when": "view == todoView",
+          "group": "1_filter@4"
+        },
+        {
+          "command": "todoView.clearSearch",
+          "when": "view == todoView",
+          "group": "1_filter@5"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "todoView.openJira",
+          "when": "view == todoView && viewItem == jira",
+          "group": "inline"
+        },
+        {
+          "command": "todoView.openEpic",
+          "when": "view == todoView && viewItem == epic",
+          "group": "inline"
+        },
+        {
+          "command": "todoView.openTaskFile",
+          "when": "view == todoView && viewItem == task",
+          "group": "inline"
+        },
+        {
+          "command": "todoView.openCronScript",
+          "when": "view == todoView && viewItem =~ /^cron-/",
+          "group": "inline@1"
+        },
+        {
+          "command": "todoView.pauseCron",
+          "when": "view == todoView && viewItem == cron-active",
+          "group": "inline@2"
+        },
+        {
+          "command": "todoView.resumeCron",
+          "when": "view == todoView && viewItem == cron-paused",
+          "group": "inline@2"
+        },
+        {
+          "command": "todoView.triggerCronRun",
+          "when": "view == todoView && viewItem =~ /^cron-/",
+          "group": "inline@3"
+        },
+        {
+          "command": "todoView.pauseCron",
+          "when": "view == todoView && viewItem == cron-active",
+          "group": "1_modification"
+        },
+        {
+          "command": "todoView.resumeCron",
+          "when": "view == todoView && viewItem == cron-paused",
+          "group": "1_modification"
+        },
+        {
+          "command": "todoView.triggerCronRun",
+          "when": "view == todoView && viewItem =~ /^cron-/",
+          "group": "1_modification"
+        },
+        {
+          "command": "todoView.copyId",
+          "when": "view == todoView && viewItem =~ /^(jira|task|cron-)/",
+          "group": "9_cutcopypaste"
+        },
+        {
+          "command": "todoView.changeStatus",
+          "when": "view == todoView && viewItem == task",
+          "group": "1_modification"
+        },
+        {
+          "command": "todoView.showDetails",
+          "when": "view == todoView && viewItem =~ /^(jira|task|cron-)/",
+          "group": "0_view@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Todo View",
+      "properties": {
+        "todoView.jiraBaseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Jira base URL (no trailing slash, no /browse). Passed to show_todo.py as SHOW_TODO_JIRA_URL. Use the 'Settings...' command instead of editing this directly if you also need to set credentials."
+        },
+        "todoView.jiraUsername": {
+          "type": "string",
+          "default": "",
+          "description": "Jira username for Basic auth. Password is stored separately via SecretStorage — set both with 'Settings...'. Leave both empty to use show_todo.py's own built-in default account."
+        },
+        "todoView.llmWikiRoot": {
+          "type": "string",
+          "default": "",
+          "description": "Path to LLMWiki repo (contains scripts/show_todo.py and tasks/<slug>.md)"
+        },
+        "todoView.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Python executable used to invoke show_todo.py"
+        },
+        "todoView.autoRefreshSec": {
+          "type": "number",
+          "default": 0,
+          "description": "Auto-refresh interval in seconds (0 = disabled)"
+        },
+        "todoView.aiProvider": {
+          "type": "string",
+          "enum": [
+            "litellm",
+            "openai",
+            "anthropic",
+            "ollama"
+          ],
+          "default": "litellm",
+          "description": "AI model provider (OpenAI-compatible endpoint). Default targets the local LiteLLM proxy."
+        },
+        "todoView.aiBaseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:4000/v1",
+          "description": "Base URL for the AI provider's OpenAI-compatible API."
+        },
+        "todoView.aiApiKey": {
+          "type": "string",
+          "default": "sk-local",
+          "description": "API key for the AI provider. Stored in plain settings — use a local-only proxy key, not a real provider secret."
+        },
+        "todoView.aiDefaultModel": {
+          "type": "string",
+          "default": "",
+          "description": "Default model id/alias sent to the provider (must match a model_list entry on the LiteLLM proxy)."
+        },
+        "todoView.updateCheckEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Periodically check the repository for newer tags and notify if installed version is behind."
+        },
+        "todoView.updateCheckIntervalHours": {
+          "type": "number",
+          "default": 24,
+          "description": "Minimum hours between automatic update checks."
+        },
+        "todoView.grafanaUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Grafana dashboard URL for the vLLM multi-server dashboard. Used to look up the Prometheus datasource and query per-model stats (running/queue, KV cache, throughput, latency p99) client-side via the datasource-proxy API. Leave empty to hide. Internal-network URLs only."
+        },
+        "todoView.hermesProfile": {
+          "type": "string",
+          "default": "default",
+          "description": "Hermes profile name whose cron state (jobs.json, output/) is displayed."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "node esbuild.js --production",
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "vsce package --baseContentUrl https://github.com/YangKangSung/task-beacon/raw/main --baseImagesUrl https://github.com/YangKangSung/task-beacon/raw/main"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "esbuild": "^0.20.0",
+    "@vscode/vsce": "^2.24.0"
+  }
+}

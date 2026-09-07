@@ -1,0 +1,14 @@
+.vscode/**
+.github/**
+src/**
+.gitignore
+.vscodeignore
+esbuild.js
+tsconfig.json
+node_modules/**
+out/**
+**/*.map
+tmp_*
+*.vsix
+*.log
+ship.sh

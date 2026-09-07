@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="50%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.32" r="0.55">
+      <stop offset="0%" stop-color="#FDE68A" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="#0F172A"/>
+  <circle cx="64" cy="42" r="46" fill="url(#glow)"/>
+
+  <!-- light rays -->
+  <g stroke="#FDE68A" stroke-width="3" stroke-linecap="round" opacity="0.85">
+    <path d="M64 10 L64 2"/>
+    <path d="M40 18 L34 10"/>
+    <path d="M88 18 L94 10"/>
+    <path d="M28 34 L18 30"/>
+    <path d="M100 34 L110 30"/>
+  </g>
+
+  <!-- lamp housing -->
+  <circle cx="64" cy="34" r="11" fill="#FDE68A"/>
+  <circle cx="64" cy="34" r="6.5" fill="#FFFBEB"/>
+
+  <!-- tower -->
+  <path d="M50 106 L57 44 L71 44 L78 106 Z" fill="url(#g)" stroke="#E0E7FF" stroke-width="1.5" stroke-linejoin="round"/>
+  <rect x="55" y="62" width="18" height="7" fill="#0F172A" opacity="0.35"/>
+  <rect x="53" y="82" width="22" height="7" fill="#0F172A" opacity="0.35"/>
+
+  <!-- base -->
+  <path d="M44 106 H84 L88 116 H40 Z" fill="#1E293B" stroke="#E0E7FF" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>
