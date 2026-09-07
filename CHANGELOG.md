@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.3
+
+Rewrite the Marketplace README: short tagline, install path, and settings people can actually use.
+
 ## 0.14.2
 
 Rename public task categories `veda-task` / `veda-cron` to `agent-task` / `agent-cron`. Older wiki frontmatter still maps.
