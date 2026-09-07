@@ -38,7 +38,7 @@ Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not commen
 1. Install **Task Beacon** from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=YangKangSung.task-beacon), or search the name in Extensions (`Ctrl+Shift+X`).
 2. Click the beacon icon in the Activity Bar. A Get Started walkthrough also appears after install.
 3. The tree already has sample Official / Private / Agent tasks. Click around.
-4. When you want your own work, click **Choose wiki folder…** (or **Use this workspace** if the open folder already has `Tasks/*.md`). Jira, Grafana, and AI stay optional.
+4. When you want your own work, click **Choose wiki folder…** (or **Use this workspace** if the open folder already has `Tasks/*.md`). Jira and AI stay optional. Grafana is in Settings → AI if you watch on-prem models.
 
 Wiki tasks work without Hermes. Hermes cron is the reason Agent exists.
 
@@ -70,7 +70,7 @@ Next to the tree:
 - **Cron Runs** — recent job output
 - **Settings** — the same setup UI as the command
 
-A bottom **Task Beacon** panel adds counters, alarms, and optional AI insights.
+A bottom **Task Beacon** panel (same strip as Terminal) shows Official / Private / Agent counters, a matching priority feed, and optional AI insights.
 
 ---
 
@@ -102,7 +102,7 @@ Optional — skip anything you do not use:
 
 - **Jira** — only if your company uses Jira. Official still works from wiki tasks tagged `official` (Linear, GitHub Issues, Notion, etc. stay in the wiki).
 - **AI** — xAI (Grok) first, then Ollama, then LiteLLM, OpenAI, or Anthropic. xAI uses the same Hermes login as SuperGrok / X Premium+ (`hermes auth add xai-oauth`), not a console API key.
-- **Grafana / AI Health** — only if you switch on-prem models (LiteLLM / vLLM) and watch Grafana. Leave empty and that panel stays hidden.
+- **Grafana / AI Health** — set `todoView.grafanaUrl` (Settings → AI) to show the bottom AI Health panel with LiteLLM / vLLM stats. Empty keeps the panel hidden. Command: **Task Beacon: Open AI Health (Grafana)…**
 
 Empty settings stay empty on purpose. No machine paths ship in the install.
 
@@ -123,7 +123,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | `todoView.aiBaseUrl` | `https://api.x.ai/v1` | OpenAI-compatible API |
 | `todoView.aiApiKey` | `sk-local` | Optional. xAI uses Hermes login; local proxies use a proxy key |
 | `todoView.aiDefaultModel` | *(empty)* | Default model id |
-| `todoView.grafanaUrl` | *(empty)* | On-prem LiteLLM/vLLM stats only; empty hides AI Health |
+| `todoView.grafanaUrl` | *(empty)* | Grafana URL. Set it to show the AI Health panel |
 
 ---
 

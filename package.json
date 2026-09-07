@@ -1,8 +1,8 @@
 {
   "name": "task-beacon",
   "displayName": "Task Beacon",
-  "description": "Hermes-first task board for company, personal, and agent work. Jira and Grafana are optional — wiki + Hermes cron is enough.",
-  "version": "0.14.14",
+  "description": "Hermes-first task board for company, personal, and agent work. Jira is optional — wiki + Hermes cron is enough.",
+  "version": "0.14.15",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -229,6 +229,11 @@
         "category": "Task Beacon"
       },
       {
+        "command": "todoView.openAiHealth",
+        "title": "Open AI Health (Grafana)...",
+        "category": "Task Beacon"
+      },
+      {
         "command": "todoView.pickWikiRoot",
         "title": "Choose Wiki Folder...",
         "icon": "$(folder-opened)",
@@ -268,7 +273,7 @@
     "viewsWelcome": [
       {
         "view": "todoView",
-        "contents": "Sample Official / Private / Agent tasks are already in the tree.\n\nWhen you want your own work, pick a wiki folder — an Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`. Jira and Grafana are optional.\n\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)\n[What am I looking at?](command:todoView.getStarted)",
+        "contents": "Sample Official / Private / Agent tasks are already in the tree.\n\nWhen you want your own work, pick a wiki folder — an Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`. Jira is optional.\n\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)\n[What am I looking at?](command:todoView.getStarted)",
         "when": "taskBeacon.needsWikiRoot"
       }
     ],
@@ -276,7 +281,7 @@
       {
         "id": "taskBeacon.getStarted",
         "title": "Get Started with Task Beacon",
-        "description": "Point the sidebar at your wiki. Jira, Grafana, and cloud AI are optional.",
+        "description": "Point the sidebar at your wiki. Jira is optional. Grafana is there if you watch on-prem models.",
         "steps": [
           {
             "id": "what",
@@ -300,7 +305,7 @@
           {
             "id": "optional",
             "title": "Optional: Jira, Grafana, AI",
-            "description": "A wiki folder is enough. Skip Jira if your team uses something else. Skip Grafana unless you switch on-prem models.\n[Open Settings](command:todoView.openSettings)",
+            "description": "A wiki folder is enough. Skip Jira if your team uses something else. Set a Grafana URL in Settings to open the AI Health panel.\n[Open Settings](command:todoView.openSettings)",
             "media": {
               "markdown": "walkthroughs/optional.md"
             }
@@ -509,7 +514,7 @@
         "todoView.grafanaUrl": {
           "type": "string",
           "default": "",
-          "description": "Optional. Only for on-prem model switching (LiteLLM / vLLM + Grafana). Leave empty — the AI Health panel stays hidden."
+          "description": "Grafana base URL for on-prem LiteLLM / vLLM metrics. Set this to show the AI Health panel. Leave empty to hide the panel."
         },
         "todoView.hermesProfile": {
           "type": "string",

@@ -232,13 +232,22 @@ export async function useWorkspaceWikiRoot(): Promise<void> {
   await pickWikiRoot();
 }
 
-export async function refreshSetupContext(): Promise<void> {
+export function isAiHealthEnabled(): boolean {
   const cfg = vscode.workspace.getConfiguration('todoView');
   const grafana = cfg.get<string>('grafanaUrl', '').trim();
   const provider = cfg.get<string>('aiProvider', 'xai');
-  const showAiHealth = Boolean(grafana) || provider === 'litellm';
+  return Boolean(grafana) || provider === 'litellm';
+}
+
+export async function refreshSetupContext(): Promise<void> {
   await vscode.commands.executeCommand('setContext', 'taskBeacon.needsWikiRoot', !configuredWikiRoot());
-  await vscode.commands.executeCommand('setContext', 'taskBeacon.showAiHealth', showAiHealth);
+  await vscode.commands.executeCommand('setContext', 'taskBeacon.showAiHealth', isAiHealthEnabled());
+}
+
+export async function revealAiHealthPanel(): Promise<void> {
+  await refreshSetupContext();
+  if (!isAiHealthEnabled()) return;
+  await vscode.commands.executeCommand('todoView.panelAiHealth.focus');
 }
 
 export async function openGetStarted(): Promise<void> {

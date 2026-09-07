@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { fetchTodoFull, readWikiTaskDetail } from './fetchTodo';
-import { CronJob, FilterMode, JiraIssue, ShowTodoFull, TodoNode, WikiTask, normalizeCategory } from './types';
+import { CronJob, FilterMode, JiraIssue, ShowTodoFull, TodoNode, WikiTask } from './types';
 import { configuredWikiRoot, inspectLabel, inspectWikiRoot, isUsableWiki, usingSampleWiki } from './wikiRoot';
 import { jiraBaseUrl } from './jiraConfig';
+import { filterByCategory } from './owners';
 
 const ROOT_OFFICIAL = 'root-official';
 const ROOT_PRIVATE = 'root-private';
@@ -522,25 +523,6 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
 
     return nodes;
   }
-}
-
-/** Returns a new WikiChannel with only tasks whose category ∈ allowed. Empty
- * string treats undefined/empty category as allowed too so unclassified tasks
- * can be routed to a default bucket. */
-function filterByCategory(
-  wiki: import('./types').WikiChannel,
-  ...allowed: string[]
-): import('./types').WikiChannel {
-  const wants = new Set(allowed);
-  const keep = (t: WikiTask) => wants.has(normalizeCategory(t.category));
-  return {
-    ok: wiki.ok,
-    error: wiki.error ?? null,
-    pending: wiki.pending.filter(keep),
-    active: wiki.active.filter(keep),
-    completed: wiki.completed.filter(keep),
-    cancelled: wiki.cancelled.filter(keep),
-  };
 }
 
 function sampleBannerNode(): TodoNode {

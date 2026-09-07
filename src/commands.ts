@@ -6,7 +6,7 @@ import { promptSelectAiModel } from './aiConfig';
 import { jiraBrowseUrl } from './jiraConfig';
 import { openSettingsPanel } from './settingsView';
 import { TodoNode } from './types';
-import { openGetStarted, pickWikiRoot, seedSamplesIntoConfiguredRoot, useWorkspaceWikiRoot } from './wikiRoot';
+import { isAiHealthEnabled, openGetStarted, pickWikiRoot, revealAiHealthPanel, seedSamplesIntoConfiguredRoot, useWorkspaceWikiRoot } from './wikiRoot';
 
 function toNode(item: TodoNode | TodoTreeItem | undefined): TodoNode | undefined {
   if (!item) return undefined;
@@ -191,6 +191,16 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
 
     vscode.commands.registerCommand('todoView.selectAiModel', promptSelectAiModel),
     vscode.commands.registerCommand('todoView.openSettings', openSettingsPanel),
+    vscode.commands.registerCommand('todoView.openAiHealth', async () => {
+      if (!isAiHealthEnabled()) {
+        await openSettingsPanel();
+        void vscode.window.showInformationMessage(
+          'Set Grafana URL in Settings → AI, then Save. The AI Health panel opens next to the dashboard.'
+        );
+        return;
+      }
+      await revealAiHealthPanel();
+    }),
     vscode.commands.registerCommand('todoView.loginXai', loginXaiViaHermes),
     vscode.commands.registerCommand('todoView.pickWikiRoot', pickWikiRoot),
     vscode.commands.registerCommand('todoView.useWorkspaceWikiRoot', useWorkspaceWikiRoot),

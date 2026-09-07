@@ -1,12 +1,20 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { ShowTodoFull } from './types';
+import { ownerStats } from './owners';
 
 export interface SnapshotRecord {
   ts: number;
   jira: { total: number; overdue: number; inProgress: number; toDo: number };
   wiki: { pending: number; active: number; completed: number; cancelled: number };
   cron: { active: number; failing: number; total: number; idle: number };
+  owners?: {
+    official: number;
+    private: number;
+    agent: number;
+    officialOverdue: number;
+    agentFailing: number;
+  };
 }
 
 const MAX_ENTRIES = 5000;
@@ -65,6 +73,7 @@ function buildRecord(data: ShowTodoFull): SnapshotRecord {
   const cronActive = data.cron.ok
     ? data.cron.jobs.filter((j) => j.state === 'active' && !isFail(j.last_status)).length
     : 0;
+  const owners = ownerStats(data);
   return {
     ts: Date.now(),
     jira: {
@@ -87,6 +96,13 @@ function buildRecord(data: ShowTodoFull): SnapshotRecord {
         ? data.cron.jobs.filter((j) => j.state !== 'active' && !isFail(j.last_status)).length
         : 0,
     },
+    owners: {
+      official: owners.official.open,
+      private: owners.private.open,
+      agent: owners.agent.open,
+      officialOverdue: owners.official.overdue,
+      agentFailing: owners.agent.failing,
+    },
   };
 }
 
@@ -103,7 +119,12 @@ function changed(a: SnapshotRecord, b: SnapshotRecord): boolean {
     a.cron.active !== b.cron.active ||
     a.cron.failing !== b.cron.failing ||
     a.cron.total !== b.cron.total ||
-    a.cron.idle !== b.cron.idle
+    a.cron.idle !== b.cron.idle ||
+    a.owners?.official !== b.owners?.official ||
+    a.owners?.private !== b.owners?.private ||
+    a.owners?.agent !== b.owners?.agent ||
+    a.owners?.officialOverdue !== b.owners?.officialOverdue ||
+    a.owners?.agentFailing !== b.owners?.agentFailing
   );
 }
 

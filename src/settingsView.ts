@@ -263,12 +263,9 @@ function renderHtml(webview: vscode.Webview): string {
         <div id="aiKeyHintXai" class="hint" style="display:none">Optional override. Leave blank to use the Hermes login token.</div>
         <label for="aiDefaultModel">Default model</label>
         <input id="aiDefaultModel" type="text" placeholder="e.g. grok-4.6" />
-        <details id="grafanaDetails" style="margin-top:1em">
-          <summary style="cursor:pointer;color:var(--vscode-descriptionForeground)">On-prem model metrics (optional)</summary>
-          <label for="grafanaUrl">Grafana URL</label>
-          <input id="grafanaUrl" type="text" placeholder="Leave empty — most people do not need this" />
-          <div class="hint">Only if you switch local LiteLLM / vLLM models and watch Grafana. Empty hides the AI Health panel.</div>
-        </details>
+        <label for="grafanaUrl">Grafana URL</label>
+        <input id="grafanaUrl" type="text" placeholder="https://grafana.example.com" />
+        <div class="hint">On-prem LiteLLM / vLLM metrics. Save a URL to show the AI Health panel next to the dashboard. Leave empty to hide that panel.</div>
       </div>
 
       <div class="pane" data-pane="paths">
@@ -388,13 +385,7 @@ function formScript(): string {
     }
     applyXaiLogin(s);
     applyWikiHint(s);
-    applyGrafanaDetails(s);
     syncProviderUi();
-  }
-
-  function applyGrafanaDetails(s) {
-    const d = document.getElementById('grafanaDetails');
-    if (d) d.open = !!s.grafanaUrl;
   }
 
   function applyWikiHint(s) {
@@ -561,12 +552,9 @@ function renderSidebarHtml(webview: vscode.Webview): string {
       <div id="aiKeyHintXai" class="hint" style="display:none">Optional override. Leave blank to use Hermes login.</div>
       <label for="aiDefaultModel">Default model</label>
       <input id="aiDefaultModel" type="text" placeholder="e.g. grok-4.6" />
-      <details id="grafanaDetails" style="margin-top:0.8em">
-        <summary style="cursor:pointer;color:var(--vscode-descriptionForeground)">On-prem model metrics (optional)</summary>
-        <label for="grafanaUrl">Grafana URL</label>
-        <input id="grafanaUrl" type="text" placeholder="Leave empty unless you use LiteLLM + Grafana" />
-        <div class="hint">Empty hides the AI Health panel. xAI / Ollama users skip this.</div>
-      </details>
+      <label for="grafanaUrl">Grafana URL</label>
+      <input id="grafanaUrl" type="text" placeholder="https://grafana.example.com" />
+      <div class="hint">On-prem LiteLLM / vLLM metrics. Save a URL to show the AI Health panel. Leave empty to hide it.</div>
     </div>
   </details>
 

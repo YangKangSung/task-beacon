@@ -15,7 +15,7 @@ const INSTRUCTIONS: Record<SummaryKind, string> = {
   cron:
     "Summarize what this script does in 1-3 concise sentences, in plain language (not a line-by-line walkthrough).",
   insights:
-    'You are the tactical AI for Task Beacon — an engineer\'s unified Jira/Wiki/Cron dashboard. ' +
+    'You are the tactical AI for Task Beacon — Official (company), Private (personal), and Agent (Hermes) work. ' +
     'Given the following snapshot of open work, produce a terse actionable digest with three sections:\n' +
     '**Top priorities** — 3 bullets, hardest overdue + blockers first, each bullet has ID + one-line why.\n' +
     '**Blockers / risks** — 1-3 bullets, anything failing, stalled >7 days, or missing info.\n' +

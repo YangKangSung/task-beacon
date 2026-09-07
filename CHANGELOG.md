@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.15
+
+The bottom Task Beacon panel, table, chart, and status bar use Official / Private / Agent — same owners as the tree — instead of Jira / Wiki / Cron. Grafana stays usable: the URL field is back in Settings → AI, and saving a URL opens the AI Health panel.
+
 ## 0.14.14
 
 Say in the listing and first-run copy that Jira and Grafana are optional. Official work can be wiki-only (Linear, GitHub Issues, or just markdown). Grafana is only for on-prem model switching. The Official tree no longer says “Jira 0” when Jira is unused.

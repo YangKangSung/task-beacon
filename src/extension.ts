@@ -13,7 +13,8 @@ import { registerCommands } from './commands';
 import { registerUpdateCheckCommand, runUpdateCheck } from './updateCheck';
 import { setContext } from './extensionContext';
 import { FilterMode, ShowTodoFull } from './types';
-import { configuredWikiRoot, ensureSampleWiki, maybeOfferWikiSetup, refreshSetupContext, usingSampleWiki } from './wikiRoot';
+import { ownerStats } from './owners';
+import { configuredWikiRoot, ensureSampleWiki, maybeOfferWikiSetup, refreshSetupContext, revealAiHealthPanel, usingSampleWiki } from './wikiRoot';
 
 let autoRefreshTimer: NodeJS.Timeout | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
@@ -22,6 +23,7 @@ const FILTER_CYCLE: FilterMode[] = ['all', 'official', 'private', 'agent'];
 
 export function activate(context: vscode.ExtensionContext): void {
   setContext(context);
+  void refreshSetupContext();
   const provider = new TodoTreeDataProvider();
   const treeView = vscode.window.createTreeView('todoView', {
     treeDataProvider: provider,
@@ -141,6 +143,9 @@ export function activate(context: vscode.ExtensionContext): void {
         provider.refresh();
         setupAutoRefresh(provider);
       }
+      if (e.affectsConfiguration('todoView.grafanaUrl') || e.affectsConfiguration('todoView.aiProvider')) {
+        void revealAiHealthPanel();
+      }
     })
   );
 
@@ -159,27 +164,23 @@ function updateTreeMeta(
     treeView.description = configuredWikiRoot() ? 'load failed' : 'samples';
     return;
   }
-  const jira = data.jira.ok ? data.jira.total : 0;
-  const wiki = data.wiki.ok ? data.wiki.pending.length + data.wiki.active.length : 0;
-  const cronActive = data.cron.ok ? data.cron.jobs.filter((j) => j.state === 'active').length : 0;
-  const overdue = data.jira.ok ? countOverdue(data.jira) : 0;
-  const failing = data.cron.ok ? data.cron.jobs.filter((j) => isFail(j.last_status)).length : 0;
-  const total = jira + wiki + cronActive;
+  const stats = ownerStats(data);
+  const total = stats.official.open + stats.private.open + stats.agent.open;
+  const alarmCount = stats.official.overdue + stats.agent.failing;
 
   treeView.badge = {
-    value: overdue + failing || total,
+    value: alarmCount || total,
     tooltip:
-      `Jira ${jira} · LLMWiki ${wiki} · Cron active ${cronActive}` +
-      (overdue ? ` · ${overdue} overdue` : '') +
-      (failing ? ` · ${failing} failing` : ''),
+      `Official ${stats.official.open} · Private ${stats.private.open} · Agent ${stats.agent.open}` +
+      (stats.official.overdue ? ` · ${stats.official.overdue} overdue` : '') +
+      (stats.agent.failing ? ` · ${stats.agent.failing} failing` : ''),
   };
 
   const filterTag = filter === 'all' ? '' : ` [${filter}]`;
   const searchTag = search ? ` 🔎 "${search}"` : '';
-  const alarm =
-    overdue > 0 || failing > 0 ? `  ⚠ ${overdue + failing}` : '';
+  const alarm = alarmCount > 0 ? `  ⚠ ${alarmCount}` : '';
   const sampleTag = usingSampleWiki() ? 'samples · ' : '';
-  treeView.description = `${sampleTag}${jira} · ${wiki} · ${cronActive}${alarm}${filterTag}${searchTag}`;
+  treeView.description = `${sampleTag}${stats.official.open} · ${stats.private.open} · ${stats.agent.open}${alarm}${filterTag}${searchTag}`;
 }
 
 function updateStatusBar(data: ShowTodoFull | undefined): void {
@@ -196,64 +197,37 @@ function updateStatusBar(data: ShowTodoFull | undefined): void {
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
     return;
   }
-  const jira = data.jira.ok ? data.jira.total : 0;
-  const wiki = data.wiki.ok ? data.wiki.pending.length + data.wiki.active.length : 0;
-  const cronActive = data.cron.ok ? data.cron.jobs.filter((j) => j.state === 'active').length : 0;
-  const overdue = data.jira.ok ? countOverdue(data.jira) : 0;
-  const failing = data.cron.ok ? data.cron.jobs.filter((j) => isFail(j.last_status)).length : 0;
-
-  // A channel showing 0 could mean "nothing open" or "fetch failed" —
-  // callers can't tell those apart from the count alone, so surface it.
+  const stats = ownerStats(data);
   const failedChannels = [
-    !data.jira.ok && 'Jira',
-    !data.wiki.ok && 'LLMWiki',
-    !data.cron.ok && 'Cron',
-  ].filter((c): c is string => !!c);
+    (stats.official.jiraUsed && !stats.official.jiraOk) || !stats.official.wikiOk ? 'Official' : '',
+    !stats.private.wikiOk ? 'Private' : '',
+    !stats.agent.wikiOk || !stats.agent.cronOk ? 'Agent' : '',
+  ].filter((c): c is string => Boolean(c));
 
-  const alarm = overdue + failing;
+  const alarm = stats.official.overdue + stats.agent.failing;
   if (usingSampleWiki()) {
-    statusBarItem.text = `$(sparkle) Beacon: samples · ${wiki}`;
+    statusBarItem.text = `$(sparkle) Beacon: samples · ${stats.official.open + stats.private.open + stats.agent.open}`;
     statusBarItem.backgroundColor = undefined;
     statusBarItem.tooltip = 'Showing bundled sample tasks. Choose your wiki folder when you want your own work.';
     return;
   }
   if (failedChannels.length > 0) {
-    statusBarItem.text = `$(warning) Beacon: ${jira} · ${wiki} · ${cronActive} · ${failedChannels.length} down`;
+    statusBarItem.text = `$(warning) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open} · ${failedChannels.length} down`;
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
   } else if (alarm > 0) {
-    statusBarItem.text = `$(flame) Beacon: ${jira} · ${wiki} · ${cronActive} · ⚠${alarm}`;
+    statusBarItem.text = `$(flame) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open} · ⚠${alarm}`;
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
   } else {
-    statusBarItem.text = `$(sparkle) Beacon: ${jira} · ${wiki} · ${cronActive}`;
+    statusBarItem.text = `$(sparkle) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open}`;
     statusBarItem.backgroundColor = undefined;
   }
   statusBarItem.tooltip = new vscode.MarkdownString(
     `**Task Beacon**\n\n` +
-      `- Jira open: **${jira}**${overdue ? ` (${overdue} overdue)` : ''}${!data.jira.ok ? ` — ⚠ ${data.jira.error ?? 'fetch failed'}` : ''}\n` +
-      `- LLMWiki: **${wiki}**${!data.wiki.ok ? ` — ⚠ ${data.wiki.error ?? 'fetch failed'}` : ''}\n` +
-      `- Cron active: **${cronActive}**${failing ? ` (${failing} failing)` : ''}${!data.cron.ok ? ` — ⚠ ${data.cron.error ?? 'fetch failed'}` : ''}\n\n` +
+      `- Official: **${stats.official.open}**${stats.official.overdue ? ` (${stats.official.overdue} overdue)` : ''}${stats.official.jiraUsed && !stats.official.jiraOk ? ` — ⚠ Jira ${data.jira.error ?? 'failed'}` : ''}\n` +
+      `- Private: **${stats.private.open}**${!stats.private.wikiOk ? ` — ⚠ ${data.wiki.error ?? 'fetch failed'}` : ''}\n` +
+      `- Agent: **${stats.agent.open}**${stats.agent.failing ? ` (${stats.agent.failing} failing)` : ''}${!stats.agent.cronOk ? ` — ⚠ cron ${data.cron.error ?? 'failed'}` : ''}\n\n` +
       `_Click to open the sidebar_`
   );
-}
-
-function countOverdue(jira: ShowTodoFull['jira']): number {
-  if (!jira.ok) return 0;
-  const today = startOfToday();
-  return jira.in_progress.concat(jira.to_do).filter((i) => {
-    if (!i.due) return false;
-    const d = Date.parse(i.due);
-    return !Number.isNaN(d) && d < today;
-  }).length;
-}
-
-function startOfToday(): number {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-}
-
-function isFail(status: string): boolean {
-  const s = (status || '').toLowerCase();
-  return s === 'failed' || s === 'error' || s === 'fail';
 }
 
 function clearAutoRefresh(): void {

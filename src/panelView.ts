@@ -7,6 +7,7 @@ import { jiraBrowseUrl } from './jiraConfig';
 import { summarizeWithAi } from './aiClient';
 import { ModelStats } from './grafanaClient';
 import { JiraIssue, WikiTask, CronJob, ShowTodoFull, FilterMode } from './types';
+import { Owner, ownerOfWikiTask, ownerStats, wikiForOwner } from './owners';
 
 interface SeriesDef {
   label: string;
@@ -14,26 +15,25 @@ interface SeriesDef {
   get: (r: SnapshotRecord) => number;
 }
 
-const JIRA_SERIES: SeriesDef[] = [
-  { label: 'Total', color: 'var(--vscode-charts-blue, #3794ff)', get: (r) => r.jira.total },
-  { label: 'Overdue', color: 'var(--vscode-charts-red, #f14c4c)', get: (r) => r.jira.overdue },
+const OFFICIAL_SERIES: SeriesDef[] = [
+  { label: 'Open', color: 'var(--vscode-charts-blue, #3794ff)', get: (r) => r.owners?.official ?? r.jira.total },
+  { label: 'Overdue', color: 'var(--vscode-charts-red, #f14c4c)', get: (r) => r.owners?.officialOverdue ?? r.jira.overdue },
 ];
 
-const CRON_SERIES: SeriesDef[] = [
-  { label: 'Active', color: 'var(--vscode-charts-orange, #d18616)', get: (r) => r.cron.active },
-  { label: 'Failing', color: 'var(--vscode-charts-red, #f14c4c)', get: (r) => r.cron.failing },
+const PRIVATE_SERIES: SeriesDef[] = [
+  { label: 'Open', color: 'var(--vscode-charts-purple, #b180d7)', get: (r) => r.owners?.private ?? r.wiki.active + r.wiki.pending },
 ];
 
-const WIKI_SERIES: SeriesDef[] = [
-  { label: 'Active', color: 'var(--vscode-charts-purple, #b180d7)', get: (r) => r.wiki.active },
-  { label: 'Pending', color: 'var(--vscode-charts-yellow, #cca700)', get: (r) => r.wiki.pending },
+const AGENT_SERIES: SeriesDef[] = [
+  { label: 'Open', color: 'var(--vscode-charts-orange, #d18616)', get: (r) => r.owners?.agent ?? r.cron.active },
+  { label: 'Failing', color: 'var(--vscode-charts-red, #f14c4c)', get: (r) => r.owners?.agentFailing ?? r.cron.failing },
 ];
 
 const TIMELINE_DAYS = 14;
 
 /** Panel-area (bottom container, alongside Terminal/Output) dashboard —
  * modeled on GitLens's `gitlensPanel` webview. Consolidates the whole
- * Task Beacon signal (Jira/Wiki/Cron) into one wide surface: KPI tiles
+ * Task Beacon signal (Official/Private/Agent) into one wide surface: KPI tiles
  * with sparklines, priority feed with deep-links, upcoming timeline,
  * AI insights, trend charts, model footer. Single file, no bundler split. */
 export class TodoPanelViewProvider implements vscode.WebviewViewProvider {
@@ -149,7 +149,7 @@ export class TodoPanelViewProvider implements vscode.WebviewViewProvider {
 
   private postSearchUpdate(): void {
     if (!this.view || !this.lastData) return;
-    const feed = renderPriorityFeed(this.lastData, this.searchTerm);
+    const feed = renderPriorityFeed(this.lastData, this.searchTerm, this.provider.getFilter());
     this.view.webview.postMessage({ command: 'feedUpdate', html: feed });
   }
 
@@ -210,7 +210,7 @@ export class TodoPanelViewProvider implements vscode.WebviewViewProvider {
       ${renderHero(data)}
       ${renderKpiTiles(data, history)}
       ${renderFilterBar(this.searchTerm, this.provider.getFilter())}
-      ${renderPriorityFeed(data, this.searchTerm)}
+      ${renderPriorityFeed(data, this.searchTerm, this.provider.getFilter())}
       ${renderTimeline(data)}
       ${renderAiInsights(ai.defaultModel, cachedInsights)}
       ${renderTrendCharts(history)}
@@ -248,11 +248,12 @@ ${body}
 //
 
 function renderHero(data: ShowTodoFull): string {
+  const stats = ownerStats(data);
   const failedChannels = [
-    !data.jira.ok && 'Official',
-    !data.wiki.ok && 'Private',
-    !data.cron.ok && 'Automated',
-  ].filter((c): c is string => !!c);
+    (stats.official.jiraUsed && !stats.official.jiraOk) || !stats.official.wikiOk ? 'Official' : '',
+    !stats.private.wikiOk ? 'Private' : '',
+    !stats.agent.wikiOk || !stats.agent.cronOk ? 'Agent' : '',
+  ].filter((c): c is string => Boolean(c));
   const now = new Date();
   const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const health = failedChannels.length
@@ -264,7 +265,7 @@ function renderHero(data: ShowTodoFull): string {
         <div class="hero-brand">
           <span class="sigil">◈</span>
           <span class="hero-title">Task Beacon</span>
-          <span class="hero-version">v0.9.9</span>
+          <span class="hero-version">Official · Private · Agent</span>
         </div>
         <div class="hero-meta">
           ${health}
@@ -277,31 +278,32 @@ function renderHero(data: ShowTodoFull): string {
 }
 
 function renderKpiTiles(data: ShowTodoFull, history: SnapshotRecord[]): string {
-  const jiraTotal = data.jira.ok ? data.jira.total : 0;
-  const jiraOverdue = data.jira.ok
-    ? data.jira.in_progress.concat(data.jira.to_do).filter((i) => isOverdue(i.due)).length
-    : 0;
-  const jiraInProg = data.jira.ok ? data.jira.in_progress.length : 0;
-  const wikiActive = data.wiki.ok ? data.wiki.active.length : 0;
-  const wikiPending = data.wiki.ok ? data.wiki.pending.length : 0;
-  const wikiDone = data.wiki.ok ? data.wiki.completed.length : 0;
-  const cronActive = data.cron.ok ? data.cron.jobs.filter((j) => j.state === 'active').length : 0;
-  const cronFailing = data.cron.ok
-    ? data.cron.jobs.filter((j) => isFail(j.last_status)).length
-    : 0;
-  const cronTotal = data.cron.ok ? data.cron.jobs.length : 0;
+  const stats = ownerStats(data);
+  const officialBits = [
+    stats.official.jiraUsed ? `Jira ${stats.official.jira}` : '',
+    stats.official.wiki ? `wiki ${stats.official.wiki}` : '',
+  ].filter(Boolean);
+  const officialSub = officialBits.length ? officialBits.join(' · ') : 'wiki official';
+  const privateSub = `${stats.private.active} active · ${stats.private.pending} pending`;
+  const agentBits = [
+    stats.agent.tasks ? `tasks ${stats.agent.tasks}` : '',
+    `cron ${stats.agent.cronActive}/${stats.agent.cronTotal}`,
+  ].filter(Boolean);
 
-  const jiraSpark = sparkline(history.slice(-30).map((r) => r.jira.total), 'var(--vscode-charts-blue, #3794ff)');
-  const jiraOverdueSpark = sparkline(
-    history.slice(-30).map((r) => r.jira.overdue),
+  const officialSpark = sparkline(
+    history.slice(-30).map((r) => r.owners?.official ?? r.jira.total),
+    'var(--vscode-charts-blue, #3794ff)'
+  );
+  const officialOverdueSpark = sparkline(
+    history.slice(-30).map((r) => r.owners?.officialOverdue ?? r.jira.overdue),
     'var(--vscode-charts-red, #f14c4c)'
   );
-  const wikiSpark = sparkline(
-    history.slice(-30).map((r) => r.wiki.active + r.wiki.pending),
+  const privateSpark = sparkline(
+    history.slice(-30).map((r) => r.owners?.private ?? r.wiki.active + r.wiki.pending),
     'var(--vscode-charts-purple, #b180d7)'
   );
-  const cronSpark = sparkline(
-    history.slice(-30).map((r) => r.cron.active),
+  const agentSpark = sparkline(
+    history.slice(-30).map((r) => r.owners?.agent ?? r.cron.active),
     'var(--vscode-charts-orange, #d18616)'
   );
 
@@ -309,34 +311,33 @@ function renderKpiTiles(data: ShowTodoFull, history: SnapshotRecord[]): string {
     <div class="kpi-grid">
       <div class="kpi" data-action="openOfficialFilter">
         <div class="kpi-head">
-          <span class="kpi-label">JIRA</span>
-          <span class="kpi-tag"><span class="kpi-dot jira"></span>Official</span>
+          <span class="kpi-label">OFFICIAL</span>
+          <span class="kpi-tag"><span class="kpi-dot official"></span>company</span>
         </div>
-        <div class="kpi-value">${jiraTotal}</div>
-        <div class="kpi-sub">${jiraInProg} in-progress · ${data.jira.ok ? data.jira.to_do.length : 0} to-do</div>
-        ${jiraOverdue ? `<div class="kpi-alert">⚠ ${jiraOverdue} overdue</div>` : `<div class="kpi-sub-thin">no overdue</div>`}
-        <div class="kpi-spark">${jiraSpark}</div>
-        <div class="kpi-spark-sub">${jiraOverdueSpark}</div>
+        <div class="kpi-value">${stats.official.open}</div>
+        <div class="kpi-sub">${officialSub}</div>
+        ${stats.official.overdue ? `<div class="kpi-alert">⚠ ${stats.official.overdue} overdue</div>` : `<div class="kpi-sub-thin">no overdue</div>`}
+        <div class="kpi-spark">${officialSpark}</div>
+        <div class="kpi-spark-sub">${officialOverdueSpark}</div>
       </div>
       <div class="kpi" data-action="openPrivateFilter">
         <div class="kpi-head">
-          <span class="kpi-label">WIKI</span>
-          <span class="kpi-tag"><span class="kpi-dot wiki"></span>Private</span>
+          <span class="kpi-label">PRIVATE</span>
+          <span class="kpi-tag"><span class="kpi-dot private"></span>personal</span>
         </div>
-        <div class="kpi-value">${wikiActive + wikiPending}</div>
-        <div class="kpi-sub">${wikiActive} active · ${wikiPending} pending</div>
-        <div class="kpi-sub-thin">${wikiDone} completed lifetime</div>
-        <div class="kpi-spark">${wikiSpark}</div>
+        <div class="kpi-value">${stats.private.open}</div>
+        <div class="kpi-sub">${privateSub}</div>
+        <div class="kpi-spark">${privateSpark}</div>
       </div>
       <div class="kpi" data-action="openAgentFilter">
         <div class="kpi-head">
-          <span class="kpi-label">CRON</span>
-          <span class="kpi-tag"><span class="kpi-dot cron"></span>Agent</span>
+          <span class="kpi-label">AGENT</span>
+          <span class="kpi-tag"><span class="kpi-dot agent"></span>Hermes</span>
         </div>
-        <div class="kpi-value">${cronActive}</div>
-        <div class="kpi-sub">${cronActive}/${cronTotal} scheduled</div>
-        ${cronFailing ? `<div class="kpi-alert">⚠ ${cronFailing} failing</div>` : `<div class="kpi-sub-thin">no failures</div>`}
-        <div class="kpi-spark">${cronSpark}</div>
+        <div class="kpi-value">${stats.agent.open}</div>
+        <div class="kpi-sub">${agentBits.join(' · ')}</div>
+        ${stats.agent.failing ? `<div class="kpi-alert">⚠ ${stats.agent.failing} failing</div>` : `<div class="kpi-sub-thin">no failures</div>`}
+        <div class="kpi-spark">${agentSpark}</div>
       </div>
     </div>
   `;
@@ -359,6 +360,7 @@ function renderFilterBar(searchTerm: string, activeFilter: FilterMode): string {
 
 interface FeedRow {
   kind: 'jira' | 'wiki' | 'cron';
+  owner: Owner;
   priority: number;
   key: string;
   title: string;
@@ -379,6 +381,7 @@ function collectFeedRows(data: ShowTodoFull): FeedRow[] {
       const overdue = isOverdue(iss.due);
       rows.push({
         kind: 'jira',
+        owner: 'official',
         priority: overdue ? 100 : 60,
         key: iss.key,
         title: iss.summary,
@@ -394,6 +397,7 @@ function collectFeedRows(data: ShowTodoFull): FeedRow[] {
       const overdue = isOverdue(iss.due);
       rows.push({
         kind: 'jira',
+        owner: 'official',
         priority: overdue ? 90 : 30,
         key: iss.key,
         title: iss.summary,
@@ -410,6 +414,7 @@ function collectFeedRows(data: ShowTodoFull): FeedRow[] {
     for (const t of data.wiki.active) {
       rows.push({
         kind: 'wiki',
+        owner: ownerOfWikiTask(t),
         priority: 55,
         key: t.file,
         title: t.title,
@@ -423,6 +428,7 @@ function collectFeedRows(data: ShowTodoFull): FeedRow[] {
     for (const t of data.wiki.pending) {
       rows.push({
         kind: 'wiki',
+        owner: ownerOfWikiTask(t),
         priority: 25,
         key: t.file,
         title: t.title,
@@ -440,6 +446,7 @@ function collectFeedRows(data: ShowTodoFull): FeedRow[] {
       if (!failing && j.state !== 'active') continue;
       rows.push({
         kind: 'cron',
+        owner: 'agent',
         priority: failing ? 95 : 40,
         key: j.id,
         title: j.name,
@@ -455,8 +462,10 @@ function collectFeedRows(data: ShowTodoFull): FeedRow[] {
   return rows;
 }
 
-function renderPriorityFeed(data: ShowTodoFull, searchTerm: string): string {
-  const rows = collectFeedRows(data);
+function renderPriorityFeed(data: ShowTodoFull, searchTerm: string, activeFilter: FilterMode): string {
+  const rows = collectFeedRows(data).filter(
+    (r) => activeFilter === 'all' || r.owner === activeFilter
+  );
   const term = searchTerm.trim().toLowerCase();
   const filtered = term
     ? rows.filter(
@@ -493,13 +502,13 @@ function renderPriorityFeed(data: ShowTodoFull, searchTerm: string): string {
 }
 
 function renderFeedRow(r: FeedRow): string {
-  const icon = r.kind === 'jira' ? '🔷' : r.kind === 'wiki' ? '📝' : '⚙';
+  const ownerLabel = r.owner === 'official' ? 'Official' : r.owner === 'private' ? 'Private' : 'Agent';
   const alert = r.alert
     ? `<span class="row-alert">${esc(r.alert)}</span>`
     : '';
   return `
-    <div class="row row-${r.kind}" data-action="${r.action}" data-key="${esc(r.actionKey)}" data-id="${esc(r.actionKey)}" data-file="${esc(r.actionKey)}">
-      <span class="row-icon">${icon}</span>
+    <div class="row row-${r.owner}" data-action="${r.action}" data-key="${esc(r.actionKey)}" data-id="${esc(r.actionKey)}" data-file="${esc(r.actionKey)}">
+      <span class="row-icon owner-${r.owner}">${ownerLabel}</span>
       <div class="row-body">
         <div class="row-title">
           <span class="row-key">${esc(r.key)}</span>
@@ -584,7 +593,7 @@ function renderTimeline(data: ShowTodoFull): string {
     <div class="section card">
       <div class="section-head">
         <h3><span class="section-icon">◷</span>Upcoming ${TIMELINE_DAYS} days</h3>
-        <span class="section-sub">Official due · Automated next-run</span>
+        <span class="section-sub">Official due dates · Agent cron next-run</span>
       </div>
       <div class="timeline">${cells}</div>
       ${overdueSummary}
@@ -631,9 +640,9 @@ function renderTrendCharts(history: SnapshotRecord[]): string {
         <span class="section-sub">${history.length} snapshots</span>
       </div>
       <div class="charts">
-        ${renderChartBlock('Official', history, JIRA_SERIES)}
-        ${renderChartBlock('Private', history, WIKI_SERIES)}
-        ${renderChartBlock('Automated', history, CRON_SERIES)}
+        ${renderChartBlock('Official', history, OFFICIAL_SERIES)}
+        ${renderChartBlock('Private', history, PRIVATE_SERIES)}
+        ${renderChartBlock('Agent', history, AGENT_SERIES)}
       </div>
     </div>
   `;
@@ -832,30 +841,48 @@ function sparkline(values: number[], color: string): string {
 function buildInsightsContext(data: ShowTodoFull): string {
   const parts: string[] = [];
   const today = startOfToday();
+  const officialWiki = data.wiki.ok ? wikiForOwner(data.wiki, 'official') : undefined;
+  const privateWiki = data.wiki.ok ? wikiForOwner(data.wiki, 'private') : undefined;
+  const agentWiki = data.wiki.ok ? wikiForOwner(data.wiki, 'agent') : undefined;
 
+  parts.push('## Official');
   if (data.jira.ok) {
-    parts.push('## JIRA — In Progress');
+    parts.push('### Jira — In Progress');
     parts.push(...formatJira(data.jira.in_progress, today));
-    parts.push('## JIRA — To Do');
+    parts.push('### Jira — To Do');
     parts.push(...formatJira(data.jira.to_do, today));
-  } else {
-    parts.push(`## JIRA — fetch failed: ${data.jira.error ?? 'unknown'}`);
+  } else if (data.jira.error) {
+    parts.push(`Jira fetch failed: ${data.jira.error}`);
   }
-  if (data.wiki.ok) {
-    parts.push('## LLMWiki — Active');
-    parts.push(...formatWiki(data.wiki.active));
-    parts.push('## LLMWiki — Pending');
-    parts.push(...formatWiki(data.wiki.pending));
+  if (officialWiki) {
+    parts.push('### Wiki official — Active');
+    parts.push(...formatWiki(officialWiki.active));
+    parts.push('### Wiki official — Pending');
+    parts.push(...formatWiki(officialWiki.pending));
+  }
+
+  parts.push('## Private');
+  if (privateWiki) {
+    parts.push('### Active');
+    parts.push(...formatWiki(privateWiki.active));
+    parts.push('### Pending');
+    parts.push(...formatWiki(privateWiki.pending));
   } else {
-    parts.push(`## LLMWiki — fetch failed: ${data.wiki.error ?? 'unknown'}`);
+    parts.push(`Wiki fetch failed: ${data.wiki.error ?? 'unknown'}`);
+  }
+
+  parts.push('## Agent');
+  if (agentWiki) {
+    parts.push('### Agent wiki tasks');
+    parts.push(...formatWiki(agentWiki.active.concat(agentWiki.pending)));
   }
   if (data.cron.ok) {
-    parts.push('## Cron — Active');
+    parts.push('### Hermes cron — Active');
     parts.push(...formatCron(data.cron.jobs.filter((j) => j.state === 'active')));
-    parts.push('## Cron — Failing');
+    parts.push('### Hermes cron — Failing');
     parts.push(...formatCron(data.cron.jobs.filter((j) => isFail(j.last_status))));
   } else {
-    parts.push(`## Cron — fetch failed: ${data.cron.error ?? 'unknown'}`);
+    parts.push(`Cron fetch failed: ${data.cron.error ?? 'unknown'}`);
   }
   return parts.filter(Boolean).join('\n');
 }
@@ -1100,9 +1127,9 @@ const STYLES = `
   .kpi-label { font-size: 0.7em; letter-spacing: 0.14em; color: var(--vscode-descriptionForeground); }
   .kpi-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 0.68em; color: var(--vscode-descriptionForeground); }
   .kpi-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .kpi-dot.jira { background: var(--vscode-charts-blue, #3794ff); }
-  .kpi-dot.wiki { background: var(--vscode-charts-purple, #b180d7); }
-  .kpi-dot.cron { background: var(--vscode-charts-orange, #d18616); }
+  .kpi-dot.official { background: var(--vscode-charts-blue, #3794ff); }
+  .kpi-dot.private { background: var(--vscode-charts-purple, #b180d7); }
+  .kpi-dot.agent { background: var(--vscode-charts-orange, #d18616); }
   .kpi-value { font-size: 1.9em; font-weight: 700; line-height: 1.1; }
   .kpi-sub { font-size: 0.78em; color: var(--vscode-descriptionForeground); }
   .kpi-sub-thin { font-size: 0.72em; color: var(--vscode-descriptionForeground); opacity: 0.7; }
@@ -1132,7 +1159,10 @@ const STYLES = `
   .row { display: flex; align-items: flex-start; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); border-left: 3px solid transparent; cursor: pointer; }
   .row:last-child { border-bottom: 0; }
   .row:hover { background: color-mix(in srgb, var(--vscode-foreground) 7%, transparent); }
-  .row-icon { flex-shrink: 0; width: 16px; text-align: center; opacity: 0.85; }
+  .row-icon { flex-shrink: 0; min-width: 52px; text-align: center; font-size: 0.62em; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 700; padding: 2px 4px; border-radius: 3px; }
+  .row-icon.owner-official { color: var(--vscode-charts-blue, #3794ff); background: color-mix(in srgb, var(--vscode-charts-blue, #3794ff) 16%, transparent); }
+  .row-icon.owner-private { color: var(--vscode-charts-purple, #b180d7); background: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 16%, transparent); }
+  .row-icon.owner-agent { color: var(--vscode-charts-orange, #d18616); background: color-mix(in srgb, var(--vscode-charts-orange, #d18616) 16%, transparent); }
   .row-body { flex: 1; min-width: 0; }
   .row-title { display: flex; gap: 6px; align-items: baseline; }
   .row-key { font-family: var(--vscode-editor-font-family); font-size: 0.76em; color: var(--vscode-descriptionForeground); flex-shrink: 0; }
@@ -1140,9 +1170,9 @@ const STYLES = `
   .row-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: 0.71em; color: var(--vscode-descriptionForeground); margin-top: 2px; }
   .row-status { text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8; }
   .row-alert { color: var(--vscode-errorForeground); font-weight: 600; }
-  .row-jira { border-left-color: var(--vscode-charts-blue, #3794ff); }
-  .row-wiki { border-left-color: var(--vscode-charts-purple, #b180d7); }
-  .row-cron { border-left-color: var(--vscode-charts-orange, #d18616); }
+  .row-official { border-left-color: var(--vscode-charts-blue, #3794ff); }
+  .row-private { border-left-color: var(--vscode-charts-purple, #b180d7); }
+  .row-agent { border-left-color: var(--vscode-charts-orange, #d18616); }
 
   /* Timeline */
   .timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 4px; }

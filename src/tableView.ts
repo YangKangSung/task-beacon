@@ -2,11 +2,13 @@ import * as vscode from 'vscode';
 import { TodoTreeDataProvider } from './todoProvider';
 import { jiraBrowseUrl } from './jiraConfig';
 import { CronJob, JiraIssue, ShowTodoFull, WikiTask } from './types';
+import { Owner, ownerOfWikiTask, ownerStats } from './owners';
 
 const MS_DAY = 86400000;
 
 type Row = {
   kind: 'jira' | 'wiki' | 'cron';
+  owner: Owner;
   id: string;
   title: string;
   status: string;
@@ -84,7 +86,7 @@ export class TodoTableViewProvider implements vscode.WebviewViewProvider {
 
     rows.sort((a, b) => b.sortKey - a.sortKey);
 
-    const stats = summarize(data);
+    const stats = ownerStats(data);
 
     if (rows.length === 0) {
       return this.wrapHtml(`
@@ -99,10 +101,10 @@ export class TodoTableViewProvider implements vscode.WebviewViewProvider {
       <div class="toolbar">
         <input id="filter" type="text" placeholder="Filter (key, title, status)…" />
         <div class="chips">
-          <button data-kind="all" class="chip active">All</button>
-          <button data-kind="jira" class="chip">Jira</button>
-          <button data-kind="wiki" class="chip">Wiki</button>
-          <button data-kind="cron" class="chip">Cron</button>
+          <button data-owner="all" class="chip active">All</button>
+          <button data-owner="official" class="chip">Official</button>
+          <button data-owner="private" class="chip">Private</button>
+          <button data-owner="agent" class="chip">Agent</button>
         </div>
       </div>
       <table>
@@ -152,9 +154,9 @@ export class TodoTableViewProvider implements vscode.WebviewViewProvider {
   .col-prio { width: 40px; text-align: center; }
   .col-due { width: 85px; white-space: nowrap; }
   .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.75em; font-weight: bold; letter-spacing: 0.03em; color: #fff; }
-  .badge.jira { background: var(--vscode-charts-blue, #3794ff); }
-  .badge.wiki { background: var(--vscode-charts-purple, #b180d7); }
-  .badge.cron { background: var(--vscode-charts-orange, #d18616); }
+  .badge.official { background: var(--vscode-charts-blue, #3794ff); }
+  .badge.private { background: var(--vscode-charts-purple, #b180d7); }
+  .badge.agent { background: var(--vscode-charts-orange, #d18616); }
   /* Category badges — 4-category classification (added 2026-07-25) */
   .cat-badge { display: inline-block; padding: 0px 5px; border-radius: 3px; font-size: 0.7em; margin-left: 6px; vertical-align: middle; letter-spacing: 0.02em; font-weight: 500; }
   .cat-badge.cat-official { background: var(--vscode-charts-blue, #3794ff); color: #fff; }
@@ -187,16 +189,16 @@ ${body}
   const vscode = acquireVsCodeApi();
   const filterInput = document.getElementById('filter');
   const chipButtons = document.querySelectorAll('.chips .chip');
-  let activeKind = 'all';
+  let activeOwner = 'all';
   let query = '';
 
   function applyFilter() {
     document.querySelectorAll('tbody tr').forEach((tr) => {
-      const kind = tr.dataset.kind;
+      const owner = tr.dataset.owner;
       const text = (tr.dataset.text || '').toLowerCase();
-      const kindMatch = activeKind === 'all' || kind === activeKind;
+      const ownerMatch = activeOwner === 'all' || owner === activeOwner;
       const textMatch = !query || text.includes(query);
-      tr.style.display = kindMatch && textMatch ? '' : 'none';
+      tr.style.display = ownerMatch && textMatch ? '' : 'none';
     });
   }
 
@@ -211,7 +213,7 @@ ${body}
     btn.addEventListener('click', () => {
       chipButtons.forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
-      activeKind = btn.dataset.kind;
+      activeOwner = btn.dataset.owner;
       applyFilter();
     });
   });
@@ -236,6 +238,7 @@ function jiraRow(issue: JiraIssue, statusLabel: string): Row {
   const age = daysSince(issue.updated);
   return {
     kind: 'jira',
+    owner: 'official',
     id: issue.key,
     title: issue.summary,
     status: statusLabel,
@@ -252,6 +255,7 @@ function jiraRow(issue: JiraIssue, statusLabel: string): Row {
 function wikiRow(t: WikiTask, state: 'active' | 'pending'): Row {
   return {
     kind: 'wiki',
+    owner: ownerOfWikiTask(t),
     id: t.file,
     title: t.title,
     status: state,
@@ -271,6 +275,7 @@ function cronRow(job: CronJob): Row {
   const age = job.last_run ? daysSince(job.last_run) : null;
   return {
     kind: 'cron',
+    owner: 'agent',
     id: job.id,
     title: job.name,
     status: job.last_status || 'never',
@@ -292,7 +297,7 @@ function renderRow(r: Row): string {
   ]
     .filter(Boolean)
     .join(' ');
-  const badge = `<span class="badge ${r.kind}">${r.kind.toUpperCase()}</span>`;
+  const badge = `<span class="badge ${r.owner}">${r.owner.toUpperCase()}</span>`;
   // Category badge (added 2026-07-25) — 4-category classification
   const catBadge = r.category ? ` <span class="cat-badge cat-${r.category}">${esc(r.category)}</span>` : '';
   const idCell =
@@ -324,7 +329,7 @@ function renderRow(r: Row): string {
 
   const searchText = `${r.id} ${r.title} ${r.status} ${r.priority} ${r.extra}`.toLowerCase();
 
-  return `<tr class="${rowClass}" data-kind="${r.kind}" data-ref="${esc(r.id)}" data-text="${esc(searchText)}">
+  return `<tr class="${rowClass}" data-kind="${r.kind}" data-owner="${r.owner}" data-ref="${esc(r.id)}" data-text="${esc(searchText)}">
     <td class="col-kind">${badge}</td>
     <td class="col-id">${idCell}</td>
     <td class="col-status">${statusCell}</td>
@@ -333,33 +338,14 @@ function renderRow(r: Row): string {
   </tr>`;
 }
 
-function statsBanner(stats: ReturnType<typeof summarize>): string {
+function statsBanner(stats: ReturnType<typeof ownerStats>): string {
   const chips: string[] = [];
-  chips.push(`<span class="chip">Jira ${stats.jira}</span>`);
-  chips.push(`<span class="chip">Wiki ${stats.wiki}</span>`);
-  chips.push(`<span class="chip">Cron ${stats.cronActive}/${stats.cronTotal}</span>`);
-  if (stats.overdue > 0) chips.push(`<span class="chip warn">${stats.overdue} overdue</span>`);
-  if (stats.failing > 0) chips.push(`<span class="chip warn">${stats.failing} failing</span>`);
+  chips.push(`<span class="chip">Official ${stats.official.open}</span>`);
+  chips.push(`<span class="chip">Private ${stats.private.open}</span>`);
+  chips.push(`<span class="chip">Agent ${stats.agent.open}</span>`);
+  if (stats.official.overdue > 0) chips.push(`<span class="chip warn">${stats.official.overdue} overdue</span>`);
+  if (stats.agent.failing > 0) chips.push(`<span class="chip warn">${stats.agent.failing} failing</span>`);
   return `<div class="stats">${chips.join('')}</div>`;
-}
-
-function summarize(data: ShowTodoFull): {
-  jira: number;
-  wiki: number;
-  cronActive: number;
-  cronTotal: number;
-  overdue: number;
-  failing: number;
-} {
-  const jira = data.jira.ok ? data.jira.total : 0;
-  const wiki = data.wiki.ok ? data.wiki.active.length + data.wiki.pending.length : 0;
-  const cronActive = data.cron.ok ? data.cron.jobs.filter((j) => j.state === 'active').length : 0;
-  const cronTotal = data.cron.ok ? data.cron.jobs.length : 0;
-  const overdue = data.jira.ok
-    ? data.jira.in_progress.concat(data.jira.to_do).filter(isOverdue).length
-    : 0;
-  const failing = data.cron.ok ? data.cron.jobs.filter((j) => isFail(j.last_status)).length : 0;
-  return { jira, wiki, cronActive, cronTotal, overdue, failing };
 }
 
 function isOverdue(issue: JiraIssue): boolean {

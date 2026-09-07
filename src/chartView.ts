@@ -8,25 +8,18 @@ interface SeriesDef {
   get: (r: SnapshotRecord) => number;
 }
 
-const JIRA_SERIES: SeriesDef[] = [
-  { label: 'Total', color: 'var(--vscode-charts-blue, #3794ff)', get: (r) => r.jira.total },
-  { label: 'In Progress', color: 'var(--vscode-charts-green, #89d185)', get: (r) => r.jira.inProgress ?? 0 },
-  { label: 'To Do', color: 'var(--vscode-charts-yellow, #cca700)', get: (r) => r.jira.toDo ?? 0 },
-  { label: 'Overdue', color: 'var(--vscode-charts-red, #f14c4c)', get: (r) => r.jira.overdue },
+const OFFICIAL_SERIES: SeriesDef[] = [
+  { label: 'Open', color: 'var(--vscode-charts-blue, #3794ff)', get: (r) => r.owners?.official ?? r.jira.total },
+  { label: 'Overdue', color: 'var(--vscode-charts-red, #f14c4c)', get: (r) => r.owners?.officialOverdue ?? r.jira.overdue },
 ];
 
-const WIKI_SERIES: SeriesDef[] = [
-  { label: 'Pending', color: 'var(--vscode-charts-purple, #b180d7)', get: (r) => r.wiki.pending },
-  { label: 'Active', color: 'var(--vscode-charts-yellow, #cca700)', get: (r) => r.wiki.active },
-  { label: 'Completed', color: 'var(--vscode-charts-green, #89d185)', get: (r) => r.wiki.completed },
-  { label: 'Cancelled', color: 'var(--vscode-disabledForeground, #888888)', get: (r) => r.wiki.cancelled },
+const PRIVATE_SERIES: SeriesDef[] = [
+  { label: 'Open', color: 'var(--vscode-charts-purple, #b180d7)', get: (r) => r.owners?.private ?? r.wiki.active + r.wiki.pending },
 ];
 
-const CRON_SERIES: SeriesDef[] = [
-  { label: 'Total', color: 'var(--vscode-charts-blue, #3794ff)', get: (r) => r.cron.total },
-  { label: 'Active', color: 'var(--vscode-charts-orange, #d18616)', get: (r) => r.cron.active },
-  { label: 'Idle', color: 'var(--vscode-disabledForeground, #888888)', get: (r) => r.cron.idle ?? 0 },
-  { label: 'Failing', color: 'var(--vscode-charts-red, #f14c4c)', get: (r) => r.cron.failing },
+const AGENT_SERIES: SeriesDef[] = [
+  { label: 'Open', color: 'var(--vscode-charts-orange, #d18616)', get: (r) => r.owners?.agent ?? r.cron.active },
+  { label: 'Failing', color: 'var(--vscode-charts-red, #f14c4c)', get: (r) => r.owners?.agentFailing ?? r.cron.failing },
 ];
 
 export class TodoChartViewProvider implements vscode.WebviewViewProvider {
@@ -77,9 +70,9 @@ export class TodoChartViewProvider implements vscode.WebviewViewProvider {
 
     return `
       ${caption}
-      ${renderChartBlock('Wiki Tasks', history, WIKI_SERIES)}
-      ${renderChartBlock('Jira', history, JIRA_SERIES)}
-      ${renderChartBlock('Cron', history, CRON_SERIES)}
+      ${renderChartBlock('Official', history, OFFICIAL_SERIES)}
+      ${renderChartBlock('Private', history, PRIVATE_SERIES)}
+      ${renderChartBlock('Agent', history, AGENT_SERIES)}
     `;
   }
 
