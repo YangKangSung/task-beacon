@@ -1,6 +1,8 @@
 # Wiki folder
 
-Task Beacon reads tasks from one folder on disk. That folder is either:
+Until you pick a folder, the sidebar shows **sample** Official / Private / Agent tasks so you can click around immediately.
+
+When you want your own work, Task Beacon reads one folder on disk. That folder is either:
 
 1. **An Obsidian vault** with `Tasks/*.md` (each file `type: Task` in frontmatter), or
 2. **A repo** that has `scripts/show_todo.py` (the older LLMWiki layout)

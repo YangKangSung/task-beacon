@@ -15,6 +15,74 @@ export function configuredWikiRoot(): string {
   return vscode.workspace.getConfiguration('todoView').get<string>('llmWikiRoot', '').trim();
 }
 
+let fallbackRoot = '';
+let bundledSamplesRoot = '';
+
+export function fallbackWikiRoot(): string {
+  return fallbackRoot;
+}
+
+/** User folder if set, otherwise the built-in sample wiki. */
+export function effectiveWikiRoot(): string {
+  return configuredWikiRoot() || fallbackRoot;
+}
+
+export function usingSampleWiki(): boolean {
+  return !configuredWikiRoot() && Boolean(fallbackRoot);
+}
+
+function bundledRoot(): string {
+  if (bundledSamplesRoot) return bundledSamplesRoot;
+  const ext = vscode.extensions.getExtension('YangKangSung.task-beacon');
+  return ext ? path.join(ext.extensionPath, 'samples') : '';
+}
+
+export async function ensureSampleWiki(context: vscode.ExtensionContext): Promise<string> {
+  bundledSamplesRoot = path.join(context.extensionPath, 'samples');
+  const dest = path.join(context.globalStorageUri.fsPath, 'sample-wiki');
+  copySampleTree(bundledSamplesRoot, dest, true);
+  fallbackRoot = dest;
+  return dest;
+}
+
+/** Copy bundled samples into `dest`. `overwrite` refreshes the built-in sample wiki. */
+export function copySampleTree(src: string, dest: string, overwrite: boolean): void {
+  if (!src || !fs.existsSync(src)) return;
+  fs.mkdirSync(dest, { recursive: true });
+  for (const name of fs.readdirSync(src)) {
+    const from = path.join(src, name);
+    const to = path.join(dest, name);
+    const stat = fs.statSync(from);
+    if (stat.isDirectory()) {
+      copySampleTree(from, to, overwrite);
+      continue;
+    }
+    if (overwrite || !fs.existsSync(to)) {
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.copyFileSync(from, to);
+    }
+  }
+}
+
+export async function seedSamplesInto(folder: string): Promise<void> {
+  const src = bundledRoot();
+  if (!src || !fs.existsSync(src)) {
+    throw new Error('Bundled samples are missing from the extension install.');
+  }
+  copySampleTree(src, folder, false);
+}
+
+export async function seedSamplesIntoConfiguredRoot(): Promise<void> {
+  const root = configuredWikiRoot();
+  if (!root) {
+    await pickWikiRoot();
+    return;
+  }
+  await seedSamplesInto(root);
+  vscode.window.setStatusBarMessage(`Beacon: sample tasks added under ${root}`, 4000);
+  await vscode.commands.executeCommand('todoView.refresh');
+}
+
 export async function setWikiRoot(absPath: string): Promise<void> {
   await vscode.workspace.getConfiguration('todoView').update(
     'llmWikiRoot',
@@ -66,7 +134,7 @@ export function isUsableWiki(info: WikiInspect): boolean {
 }
 
 export function inspectLabel(info: WikiInspect): string {
-  if (!info.path) return 'Not set — choose a folder to see tasks.';
+  if (!info.path) return 'Using built-in samples until you choose a folder.';
   if (!info.exists) return 'Folder not found.';
   if (info.kind === 'vault' || info.kind === 'both') {
     return `Looks good — ${info.taskFiles ?? 0} task file${info.taskFiles === 1 ? '' : 's'}.`;
@@ -105,13 +173,18 @@ export async function pickWikiRoot(): Promise<string | undefined> {
   const info = inspectWikiRoot(folder);
   if (!isUsableWiki(info)) {
     const choice = await vscode.window.showWarningMessage(
-      `"${path.basename(folder)}" has no Tasks/*.md and no scripts/show_todo.py. Use it anyway?`,
+      `"${path.basename(folder)}" has no Tasks/*.md and no scripts/show_todo.py.`,
       { modal: true },
-      'Use anyway',
-      'Choose another…'
+      'Add sample tasks',
+      'Choose another…',
+      'Use empty'
     );
     if (choice === 'Choose another…') return pickWikiRoot();
-    if (choice !== 'Use anyway') return undefined;
+    if (choice === 'Add sample tasks') {
+      await seedSamplesInto(folder);
+    } else if (choice !== 'Use empty') {
+      return undefined;
+    }
   }
 
   await setWikiRoot(folder);
@@ -144,10 +217,14 @@ export async function useWorkspaceWikiRoot(): Promise<void> {
   if (folders?.length === 1) {
     const choice = await vscode.window.showWarningMessage(
       `"${folders[0].name}" does not look like a wiki (need Tasks/*.md or scripts/show_todo.py).`,
+      'Add sample tasks',
       'Choose folder…',
       'Use anyway'
     );
-    if (choice === 'Use anyway') await setWikiRoot(folders[0].uri.fsPath);
+    if (choice === 'Add sample tasks') {
+      await seedSamplesInto(folders[0].uri.fsPath);
+      await setWikiRoot(folders[0].uri.fsPath);
+    } else if (choice === 'Use anyway') await setWikiRoot(folders[0].uri.fsPath);
     else if (choice === 'Choose folder…') await pickWikiRoot();
     return;
   }
@@ -186,7 +263,7 @@ export async function maybeOfferWikiSetup(context: vscode.ExtensionContext): Pro
   }
 
   const choice = await vscode.window.showInformationMessage(
-    'Task Beacon needs a wiki folder to show work — an Obsidian vault with Tasks/*.md, or a repo with scripts/show_todo.py.',
+    'Sample tasks are showing so the tree is not empty. Choose your own wiki folder whenever you want — an Obsidian vault with Tasks/*.md, or a repo with scripts/show_todo.py.',
     'Choose folder…',
     'Learn more',
     'Later'

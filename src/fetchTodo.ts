@@ -5,11 +5,12 @@ import * as os from 'os';
 import { spawn } from 'child_process';
 import { ShowTodoFull, HermesJobsFile, WikiChannel, WikiTask, CronChannel, normalizeCategory } from './types';
 import { jiraAuthEnv, jiraBaseUrl } from './jiraConfig';
+import { effectiveWikiRoot } from './wikiRoot';
 
 function config() {
   const cfg = vscode.workspace.getConfiguration('todoView');
   return {
-    llmWikiRoot: cfg.get<string>('llmWikiRoot', ''),
+    llmWikiRoot: effectiveWikiRoot(),
     pythonPath: cfg.get<string>('pythonPath', 'python'),
     hermesProfile: cfg.get<string>('hermesProfile', 'default'),
   };
@@ -41,7 +42,7 @@ export async function fetchTodoFull(): Promise<ShowTodoFull> {
   if (!llmWikiRoot) {
     return Promise.reject(
       new Error(
-        "Task Beacon: 'todoView.llmWikiRoot' is not set. Point it at a vault with Tasks/*.md, or a repo with scripts/show_todo.py (run 'Task Beacon: Settings...')."
+        "Task Beacon: no wiki folder yet and samples are not ready. Run 'Task Beacon: Choose Wiki Folder…'."
       )
     );
   }
@@ -373,7 +374,7 @@ export function llmWikiRoot(): string {
 export function taskFilePath(file: string): string {
   const root = config().llmWikiRoot;
   const normalized = file.replace(/\\/g, '/');
-  if (/^(tasks|Tasks)\//.test(normalized)) {
+  if (/^(tasks|Tasks|projects|Projects)\//.test(normalized)) {
     return path.join(root, file);
   }
   const capital = path.join(root, 'Tasks', file);

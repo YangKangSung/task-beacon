@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.12
+
+First launch shows bundled sample tasks so the tree is never empty. Existing wiki folders are unchanged. A new folder can get the same samples in one click.
+
 ## 0.14.11
 
 First-run setup like GitLens / Python / Kampff: empty-tree welcome, folder picker, walkthrough. New users pick a wiki folder instead of typing a settings path.

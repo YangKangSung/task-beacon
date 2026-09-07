@@ -6,7 +6,7 @@ import { promptSelectAiModel } from './aiConfig';
 import { jiraBrowseUrl } from './jiraConfig';
 import { openSettingsPanel } from './settingsView';
 import { TodoNode } from './types';
-import { openGetStarted, pickWikiRoot, useWorkspaceWikiRoot } from './wikiRoot';
+import { openGetStarted, pickWikiRoot, seedSamplesIntoConfiguredRoot, useWorkspaceWikiRoot } from './wikiRoot';
 
 function toNode(item: TodoNode | TodoTreeItem | undefined): TodoNode | undefined {
   if (!item) return undefined;
@@ -194,6 +194,7 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
     vscode.commands.registerCommand('todoView.loginXai', loginXaiViaHermes),
     vscode.commands.registerCommand('todoView.pickWikiRoot', pickWikiRoot),
     vscode.commands.registerCommand('todoView.useWorkspaceWikiRoot', useWorkspaceWikiRoot),
+    vscode.commands.registerCommand('todoView.seedSamples', seedSamplesIntoConfiguredRoot),
     vscode.commands.registerCommand('todoView.getStarted', openGetStarted)
   );
 }

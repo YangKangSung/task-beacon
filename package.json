@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Hermes-first sidebar: Jira-style epics and tasks for company, personal, and agent work — including Hermes cron.",
-  "version": "0.14.11",
+  "version": "0.14.12",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -244,6 +244,11 @@
         "category": "Task Beacon"
       },
       {
+        "command": "todoView.seedSamples",
+        "title": "Add Sample Tasks to Wiki Folder",
+        "category": "Task Beacon"
+      },
+      {
         "command": "todoView.loginXai",
         "title": "Log in to xAI via Hermes",
         "category": "Task Beacon"
@@ -262,7 +267,7 @@
     "viewsWelcome": [
       {
         "view": "todoView",
-        "contents": "Task Beacon shows Official, Private, and Agent work in one tree.\n\nIt needs a **wiki folder** — an Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`.\n\nYou pick the folder. You do not type a settings path.\n\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)\n[What am I looking at?](command:todoView.getStarted)",
+        "contents": "Sample Official / Private / Agent tasks are already in the tree.\n\nWhen you want your own work, pick a wiki folder — an Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`.\n\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)\n[What am I looking at?](command:todoView.getStarted)",
         "when": "taskBeacon.needsWikiRoot"
       }
     ],

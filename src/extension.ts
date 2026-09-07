@@ -13,7 +13,7 @@ import { registerCommands } from './commands';
 import { registerUpdateCheckCommand, runUpdateCheck } from './updateCheck';
 import { setContext } from './extensionContext';
 import { FilterMode, ShowTodoFull } from './types';
-import { configuredWikiRoot, maybeOfferWikiSetup, refreshSetupContext } from './wikiRoot';
+import { configuredWikiRoot, ensureSampleWiki, maybeOfferWikiSetup, refreshSetupContext, usingSampleWiki } from './wikiRoot';
 
 let autoRefreshTimer: NodeJS.Timeout | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
@@ -128,7 +128,11 @@ export function activate(context: vscode.ExtensionContext): void {
   registerCommands(context, provider);
   registerUpdateCheckCommand(context);
   void runUpdateCheck(context, false);
-  void refreshSetupContext().then(() => maybeOfferWikiSetup(context));
+  void ensureSampleWiki(context).then(() => {
+    void refreshSetupContext();
+    provider.refresh();
+    return maybeOfferWikiSetup(context);
+  });
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
@@ -152,7 +156,7 @@ function updateTreeMeta(
 ): void {
   if (!data) {
     treeView.badge = undefined;
-    treeView.description = configuredWikiRoot() ? 'load failed' : 'choose wiki folder';
+    treeView.description = configuredWikiRoot() ? 'load failed' : 'samples';
     return;
   }
   const jira = data.jira.ok ? data.jira.total : 0;
@@ -174,15 +178,16 @@ function updateTreeMeta(
   const searchTag = search ? ` 🔎 "${search}"` : '';
   const alarm =
     overdue > 0 || failing > 0 ? `  ⚠ ${overdue + failing}` : '';
-  treeView.description = `${jira} · ${wiki} · ${cronActive}${alarm}${filterTag}${searchTag}`;
+  const sampleTag = usingSampleWiki() ? 'samples · ' : '';
+  treeView.description = `${sampleTag}${jira} · ${wiki} · ${cronActive}${alarm}${filterTag}${searchTag}`;
 }
 
 function updateStatusBar(data: ShowTodoFull | undefined): void {
   if (!statusBarItem) return;
   if (!data) {
     if (!configuredWikiRoot()) {
-      statusBarItem.text = '$(sparkle) Beacon: set wiki folder';
-      statusBarItem.tooltip = 'Task Beacon — choose a wiki folder to get started.';
+      statusBarItem.text = '$(sparkle) Beacon: samples';
+      statusBarItem.tooltip = 'Task Beacon — showing sample tasks. Choose your wiki folder when ready.';
       statusBarItem.backgroundColor = undefined;
       return;
     }
@@ -206,6 +211,12 @@ function updateStatusBar(data: ShowTodoFull | undefined): void {
   ].filter((c): c is string => !!c);
 
   const alarm = overdue + failing;
+  if (usingSampleWiki()) {
+    statusBarItem.text = `$(sparkle) Beacon: samples · ${wiki}`;
+    statusBarItem.backgroundColor = undefined;
+    statusBarItem.tooltip = 'Showing bundled sample tasks. Choose your wiki folder when you want your own work.';
+    return;
+  }
   if (failedChannels.length > 0) {
     statusBarItem.text = `$(warning) Beacon: ${jira} · ${wiki} · ${cronActive} · ${failedChannels.length} down`;
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');

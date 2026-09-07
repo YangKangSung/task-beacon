@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { fetchTodoFull, readWikiTaskDetail } from './fetchTodo';
 import { CronJob, FilterMode, JiraIssue, ShowTodoFull, TodoNode, WikiTask, normalizeCategory } from './types';
-import { configuredWikiRoot, inspectLabel, inspectWikiRoot, isUsableWiki } from './wikiRoot';
+import { configuredWikiRoot, inspectLabel, inspectWikiRoot, isUsableWiki, usingSampleWiki } from './wikiRoot';
 
 const ROOT_OFFICIAL = 'root-official';
 const ROOT_PRIVATE = 'root-private';
@@ -145,14 +145,12 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
 
   private async getRoots(): Promise<TodoNode[]> {
     const root = configuredWikiRoot();
-    if (!root) {
-      this.loadedEmitter.fire(undefined);
-      return [];
-    }
-    const info = inspectWikiRoot(root);
-    if (!isUsableWiki(info)) {
-      this.loadedEmitter.fire(undefined);
-      return wikiSetupRecoveryNodes(info);
+    if (root) {
+      const info = inspectWikiRoot(root);
+      if (!isUsableWiki(info)) {
+        this.loadedEmitter.fire(undefined);
+        return wikiSetupRecoveryNodes(info);
+      }
     }
 
     await this.ensureLoaded();
@@ -243,6 +241,10 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
         iconId: cronFail > 0 ? 'flame' : 'robot',
         iconColor: cronFail > 0 ? 'charts.red' : 'charts.orange',
       });
+    }
+
+    if (usingSampleWiki()) {
+      roots.unshift(sampleBannerNode());
     }
 
     return roots;
@@ -534,6 +536,18 @@ function filterByCategory(
   };
 }
 
+function sampleBannerNode(): TodoNode {
+  return {
+    kind: 'action',
+    label: 'Showing sample tasks',
+    description: 'Choose your wiki folder…',
+    tooltip: 'These rows are bundled samples. Your settings stay empty until you pick a folder.',
+    iconId: 'lightbulb',
+    iconColor: 'charts.yellow',
+    commandId: 'todoView.pickWikiRoot',
+  };
+}
+
 function wikiSetupRecoveryNodes(info: ReturnType<typeof inspectWikiRoot>): TodoNode[] {
   return [
     {
@@ -544,6 +558,12 @@ function wikiSetupRecoveryNodes(info: ReturnType<typeof inspectWikiRoot>): TodoN
       iconId: 'warning',
       iconColor: 'charts.orange',
       commandId: 'todoView.pickWikiRoot',
+    },
+    {
+      kind: 'action',
+      label: 'Add sample tasks here',
+      iconId: 'new-file',
+      commandId: 'todoView.seedSamples',
     },
     {
       kind: 'action',
