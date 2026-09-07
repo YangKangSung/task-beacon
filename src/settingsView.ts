@@ -234,8 +234,9 @@ function renderHtml(webview: vscode.Webview): string {
 
     <div class="content">
       <div class="pane active" data-pane="jira">
+        <div class="hint">Optional. Skip this if your team does not use Jira — Official still shows wiki tasks tagged <code>official</code>.</div>
         <label for="jiraBaseUrl">Base URL</label>
-        <input id="jiraBaseUrl" type="text" placeholder="${esc(DEFAULT_JIRA_URL)}" />
+        <input id="jiraBaseUrl" type="text" placeholder="https://your-company.atlassian.net" />
         <label for="jiraUsername">Username</label>
         <input id="jiraUsername" type="text" />
         <label for="jiraPassword">Password</label>
@@ -528,8 +529,9 @@ function renderSidebarHtml(webview: vscode.Webview): string {
   <details open>
     <summary>Jira</summary>
     <div class="section-body">
+      <div class="hint">Optional. Skip if your team does not use Jira — Official still shows wiki tasks tagged <code>official</code>.</div>
       <label for="jiraBaseUrl">Base URL</label>
-      <input id="jiraBaseUrl" type="text" placeholder="${esc(DEFAULT_JIRA_URL)}" />
+      <input id="jiraBaseUrl" type="text" placeholder="https://your-company.atlassian.net" />
       <label for="jiraUsername">Username</label>
       <input id="jiraUsername" type="text" />
       <label for="jiraPassword">Password</label>

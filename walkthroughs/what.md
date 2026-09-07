@@ -4,7 +4,7 @@ The sidebar is a **Jira-style board** for three owners of work.
 
 | You see | What it is |
 |---------|------------|
-| **Official** | Company / team work (Jira + wiki tasks tagged `official`) |
+| **Official** | Company / team work (wiki `official`; Jira only if you use Jira) |
 | **Private** | Your own wiki tasks |
 | **Agent** | Hermes agent tasks and Hermes cron |
 

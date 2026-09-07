@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { fetchTodoFull, readWikiTaskDetail } from './fetchTodo';
 import { CronJob, FilterMode, JiraIssue, ShowTodoFull, TodoNode, WikiTask, normalizeCategory } from './types';
 import { configuredWikiRoot, inspectLabel, inspectWikiRoot, isUsableWiki, usingSampleWiki } from './wikiRoot';
+import { jiraBaseUrl } from './jiraConfig';
 
 const ROOT_OFFICIAL = 'root-official';
 const ROOT_PRIVATE = 'root-private';
@@ -196,17 +197,23 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
 
     if (this.filter === 'all' || this.filter === 'official') {
       const parts: string[] = [];
-      if (data.jira.ok) parts.push(`Jira ${jiraCount}`);
-      else parts.push('Jira · error');
+      const jiraConfigured = Boolean(jiraBaseUrl()) || jiraCount > 0 || !data.jira.ok;
+      if (jiraConfigured) {
+        if (data.jira.ok) parts.push(`Jira ${jiraCount}`);
+        else parts.push('Jira · error');
+      }
       if (officialWikiOpen > 0) parts.push(`Wiki ${officialWikiOpen}`);
+      else if (!jiraConfigured) parts.push('wiki official');
       if (overdue > 0) parts.push(`${overdue} overdue`);
       roots.push({
         kind: ROOT_OFFICIAL,
         label: 'Official',
         description: parts.join('  ·  '),
-        tooltip: data.jira.ok
-          ? `Official work (Jira + wiki category=official)\n${officialTotal} open${overdue ? ` · ${overdue} overdue` : ''}`
-          : data.jira.error ?? 'Jira fetch failed',
+        tooltip: jiraConfigured
+          ? data.jira.ok
+            ? `Official work (Jira + wiki category=official)\n${officialTotal} open${overdue ? ` · ${overdue} overdue` : ''}`
+            : data.jira.error ?? 'Jira fetch failed'
+          : `Official work (wiki category=official — Jira is optional)\n${officialTotal} open${overdue ? ` · ${overdue} overdue` : ''}`,
         iconId: overdue > 0 ? 'flame' : 'briefcase',
         iconColor: overdue > 0 ? 'charts.red' : 'charts.blue',
       });

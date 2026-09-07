@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Hermes-first task board in VS Code.</strong><br>
-  Jira’s epic / task model for company, personal, and Hermes agent work — including cron.
+  Jira’s epic / task model for company, personal, and Hermes agent work. Jira itself is optional.
 </p>
 
 <p align="center">
@@ -17,13 +17,13 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
 
-[Hermes](https://github.com/NousResearch/hermes-agent) is the agent runtime this board is built around. Task Beacon does not replace Hermes. It is the epic / task view for work Hermes already owns — plus company Jira and personal wiki tasks in the same tree.
+[Hermes](https://github.com/NousResearch/hermes-agent) is the agent runtime this board is built around. Task Beacon does not replace Hermes. It is the epic / task view for work Hermes already owns — plus company and personal wiki tasks in the same tree. Jira is one optional Official source, not a requirement.
 
 The idea is simple: **Jira already got epics and tasks right.** Use that shape for three owners, with Hermes first.
 
 | Owner | What you manage |
 |-------|-----------------|
-| **Company** (Official) | Team epics and tasks — Jira plus wiki tasks tagged `official` |
+| **Company** (Official) | Team epics and tasks — wiki `official`, plus Jira *if* you use Jira |
 | **Personal** (Private) | Your own epics and tasks in the wiki |
 | **Agent** (Hermes) | Hermes agent tasks **and** Hermes cron — same epic/task tree |
 
@@ -38,7 +38,7 @@ Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not commen
 1. Install **Task Beacon** from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=YangKangSung.task-beacon), or search the name in Extensions (`Ctrl+Shift+X`).
 2. Click the beacon icon in the Activity Bar. A Get Started walkthrough also appears after install.
 3. The tree already has sample Official / Private / Agent tasks. Click around.
-4. When you want your own work, click **Choose wiki folder…** (or **Use this workspace** if the open folder already has `Tasks/*.md`). Jira and AI stay optional.
+4. When you want your own work, click **Choose wiki folder…** (or **Use this workspace** if the open folder already has `Tasks/*.md`). Jira, Grafana, and AI stay optional.
 
 Wiki tasks work without Hermes. Hermes cron is the reason Agent exists.
 
@@ -54,13 +54,13 @@ The tree is the same epic → task outline Jira uses, split by owner. Cycle owne
 
 | Owner | Epics & tasks from | Cron |
 |-------|--------------------|------|
-| **Official** | Jira + wiki `official` | — |
+| **Official** | Wiki `official` (+ Jira only if configured) | — |
 | **Private** | Wiki `private` | — |
 | **Agent** | Wiki `agent-task` / `agent-cron` | Live Hermes cron (`profiles/<name>/cron/`) |
 
 Wiki tasks can set `epic:` / `epic_link:` in frontmatter so they nest under an epic, just like Jira issues with an Epic Link. Items with no epic stay flat.
 
-Click a row to open the Jira issue, the markdown task, or the cron script.
+Click a row to open the ticket, the markdown task, or the cron script.
 
 Next to the tree:
 
@@ -98,10 +98,11 @@ Older `veda-task` / `veda-cron` values still load; they show as `agent-task` / `
 | Python 3 | Only if you use `scripts/show_todo.py` for Jira |
 | A wiki folder | Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py` |
 
-Optional:
+Optional — skip anything you do not use:
 
-- **Jira** — set base URL and account via **Settings...** (password goes to Secret Storage)
+- **Jira** — only if your company uses Jira. Official still works from wiki tasks tagged `official` (Linear, GitHub Issues, Notion, etc. stay in the wiki).
 - **AI** — xAI (Grok) first, then Ollama, then LiteLLM, OpenAI, or Anthropic. xAI uses the same Hermes login as SuperGrok / X Premium+ (`hermes auth add xai-oauth`), not a console API key.
+- **Grafana / AI Health** — only if you switch on-prem models (LiteLLM / vLLM) and watch Grafana. Leave empty and that panel stays hidden.
 
 Empty settings stay empty on purpose. No machine paths ship in the install.
 
@@ -115,7 +116,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 |---------|---------|---------|
 | `todoView.llmWikiRoot` | *(empty)* | Vault with `Tasks/*.md`, or a repo with `show_todo.py` |
 | `todoView.pythonPath` | `python` | Python used to run that script |
-| `todoView.jiraBaseUrl` | *(empty)* | Jira site, no `/browse` |
+| `todoView.jiraBaseUrl` | *(empty)* | Optional Jira site. Empty = Official is wiki-only |
 | `todoView.hermesProfile` | `default` | Hermes profile for cron |
 | `todoView.autoRefreshSec` | `0` | Auto-refresh; `0` is off |
 | `todoView.aiProvider` | `xai` | `xai` / `ollama` / `litellm` / `openai` / `anthropic` |

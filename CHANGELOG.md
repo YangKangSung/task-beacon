@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.14
+
+Say in the listing and first-run copy that Jira and Grafana are optional. Official work can be wiki-only (Linear, GitHub Issues, or just markdown). Grafana is only for on-prem model switching. The Official tree no longer says “Jira 0” when Jira is unused.
+
 ## 0.14.13
 
 Hide the AI Health / Grafana panel unless a Grafana URL is set or the provider is LiteLLM. Most people using xAI or Ollama do not need it.

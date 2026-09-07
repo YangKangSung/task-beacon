@@ -1,8 +1,8 @@
 {
   "name": "task-beacon",
   "displayName": "Task Beacon",
-  "description": "Hermes-first sidebar: Jira-style epics and tasks for company, personal, and agent work — including Hermes cron.",
-  "version": "0.14.13",
+  "description": "Hermes-first task board for company, personal, and agent work. Jira and Grafana are optional — wiki + Hermes cron is enough.",
+  "version": "0.14.14",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -268,7 +268,7 @@
     "viewsWelcome": [
       {
         "view": "todoView",
-        "contents": "Sample Official / Private / Agent tasks are already in the tree.\n\nWhen you want your own work, pick a wiki folder — an Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`.\n\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)\n[What am I looking at?](command:todoView.getStarted)",
+        "contents": "Sample Official / Private / Agent tasks are already in the tree.\n\nWhen you want your own work, pick a wiki folder — an Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`. Jira and Grafana are optional.\n\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)\n[What am I looking at?](command:todoView.getStarted)",
         "when": "taskBeacon.needsWikiRoot"
       }
     ],
@@ -276,7 +276,7 @@
       {
         "id": "taskBeacon.getStarted",
         "title": "Get Started with Task Beacon",
-        "description": "Point the sidebar at your tasks, then optionally add Hermes, xAI, and Jira.",
+        "description": "Point the sidebar at your wiki. Jira, Grafana, and cloud AI are optional.",
         "steps": [
           {
             "id": "what",
@@ -299,8 +299,8 @@
           },
           {
             "id": "optional",
-            "title": "Optional: Hermes, xAI, Jira",
-            "description": "The tree works with only a wiki folder. Cron, Grok, and Jira are extras.\n[Open Settings](command:todoView.openSettings)",
+            "title": "Optional: Jira, Grafana, AI",
+            "description": "A wiki folder is enough. Skip Jira if your team uses something else. Skip Grafana unless you switch on-prem models.\n[Open Settings](command:todoView.openSettings)",
             "media": {
               "markdown": "walkthroughs/optional.md"
             }
@@ -440,7 +440,7 @@
         "todoView.jiraBaseUrl": {
           "type": "string",
           "default": "",
-          "description": "Jira base URL (no trailing slash, no /browse). Passed to show_todo.py as SHOW_TODO_JIRA_URL. Use the 'Settings...' command instead of editing this directly if you also need to set credentials."
+          "description": "Optional. Leave empty if you do not use Jira — Official still shows wiki tasks tagged official. No trailing slash, no /browse."
         },
         "todoView.jiraUsername": {
           "type": "string",
