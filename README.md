@@ -13,6 +13,7 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=YangKangSung.task-beacon"><img src="https://img.shields.io/visual-studio-marketplace/v/YangKangSung.task-beacon?label=Marketplace&logo=visual-studio-code&logoColor=white" alt="Marketplace version"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=YangKangSung.task-beacon"><img src="https://img.shields.io/visual-studio-marketplace/d/YangKangSung.task-beacon?label=Installs" alt="Installs"></a>
   <a href="https://marketplace.visualstudio.com/items?itemName=YangKangSung.task-beacon"><img src="https://img.shields.io/visual-studio-marketplace/r/YangKangSung.task-beacon?label=Rating" alt="Rating"></a>
+  <a href="https://github.com/sponsors/YangKangSung"><img src="https://img.shields.io/badge/Sponsor-YangKangSung-ea4aaa?logo=githubsponsors" alt="Sponsor"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
 
@@ -98,7 +99,7 @@ Optional:
 
 - **Jira** — set base URL and account via **Settings...** (password goes to Secret Storage)
 - **Hermes** — local profile so cron jobs appear under Agent
-- **AI** — LiteLLM, OpenAI, Grok (xAI), Anthropic, or Ollama. Grok uses `https://api.x.ai/v1` and an xAI API key.
+- **AI** — xAI (Grok) first, then LiteLLM, OpenAI, Anthropic, or Ollama. xAI uses `https://api.x.ai/v1`.
 
 Empty settings stay empty on purpose. No machine paths ship in the install.
 
@@ -115,7 +116,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | `todoView.jiraBaseUrl` | *(empty)* | Jira site, no `/browse` |
 | `todoView.hermesProfile` | `default` | Hermes profile for cron |
 | `todoView.autoRefreshSec` | `0` | Auto-refresh; `0` is off |
-| `todoView.aiProvider` | `litellm` | `litellm` / `openai` / `grok` / `anthropic` / `ollama` |
+| `todoView.aiProvider` | `litellm` | `xai` / `litellm` / `openai` / `anthropic` / `ollama` |
 | `todoView.aiBaseUrl` | `http://127.0.0.1:4000/v1` | OpenAI-compatible API |
 | `todoView.aiApiKey` | `sk-local` | Use a local proxy key, not a cloud secret |
 | `todoView.aiDefaultModel` | *(empty)* | Default model id |
@@ -166,6 +167,10 @@ code --install-extension task-beacon-*.vsix --force
 If the repo is damaged, paste [AI-RECOVERY.md](AI-RECOVERY.md) into a coding agent.
 
 ---
+
+## Sponsor
+
+If Task Beacon is useful: [github.com/sponsors/YangKangSung](https://github.com/sponsors/YangKangSung).
 
 ## License
 

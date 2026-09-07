@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.6
+
+Put xAI (Grok) first in the provider list. `grok` still maps to `xai`. GitHub Sponsors link on the Marketplace listing.
+
 ## 0.14.5
 
 Add Grok (xAI) as an AI provider (`https://api.x.ai/v1`).

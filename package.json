@@ -2,12 +2,15 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Manage company, personal, and agent work — plus cron — with Jira-style epics and tasks in one sidebar.",
-  "version": "0.14.5",
+  "version": "0.14.6",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
   "license": "MIT",
   "pricing": "Free",
+  "sponsor": {
+    "url": "https://github.com/sponsors/YangKangSung"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/YangKangSung/task-beacon.git"
@@ -387,14 +390,21 @@
         "todoView.aiProvider": {
           "type": "string",
           "enum": [
+            "xai",
             "litellm",
             "openai",
-            "grok",
             "anthropic",
             "ollama"
           ],
+          "enumItemLabels": [
+            "xAI (Grok)",
+            "LiteLLM (local proxy)",
+            "OpenAI",
+            "Anthropic",
+            "Ollama"
+          ],
           "default": "litellm",
-          "description": "AI model provider (OpenAI-compatible endpoint). Default targets the local LiteLLM proxy."
+          "description": "AI model provider. xAI is first. OpenAI-compatible endpoints also work."
         },
         "todoView.aiBaseUrl": {
           "type": "string",

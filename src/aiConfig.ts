@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { fetchModelHealthMap, ModelHealthStatus } from './aiClient';
 
-export type AiProvider = 'litellm' | 'openai' | 'grok' | 'anthropic' | 'ollama';
+export type AiProvider = 'xai' | 'litellm' | 'openai' | 'anthropic' | 'ollama';
 
 export interface AiSettings {
   provider: AiProvider;
@@ -14,16 +14,16 @@ export interface AiSettings {
  * picking a provider resets baseUrl to its known endpoint, but leaves
  * apiKey/model alone if the user already customized them. */
 export const PROVIDER_PRESETS: Record<AiProvider, { baseUrl: string; label: string }> = {
+  xai: { baseUrl: 'https://api.x.ai/v1', label: 'xAI (Grok)' },
   litellm: { baseUrl: 'http://127.0.0.1:4000/v1', label: 'LiteLLM (local proxy)' },
   openai: { baseUrl: 'https://api.openai.com/v1', label: 'OpenAI' },
-  grok: { baseUrl: 'https://api.x.ai/v1', label: 'Grok (xAI)' },
   anthropic: { baseUrl: 'https://api.anthropic.com/v1', label: 'Anthropic' },
   ollama: { baseUrl: 'http://127.0.0.1:11434/v1', label: 'Ollama (local)' },
 };
 
 /** Static picker entries when the provider has no /model/info probe. */
 export const PROVIDER_MODELS: Partial<Record<AiProvider, readonly string[]>> = {
-  grok: ['grok-4.6', 'grok-4.5', 'grok-4', 'grok-3-mini'],
+  xai: ['grok-4.6', 'grok-4.5', 'grok-4', 'grok-3-mini'],
 };
 
 /**
@@ -45,10 +45,16 @@ export function discoverModels(
   return [...set].sort();
 }
 
+function normalizeProvider(raw: string): AiProvider {
+  if (raw === 'grok') return 'xai';
+  if (raw in PROVIDER_PRESETS) return raw as AiProvider;
+  return 'litellm';
+}
+
 export function getAiSettings(): AiSettings {
   const cfg = vscode.workspace.getConfiguration('todoView');
   return {
-    provider: cfg.get<AiProvider>('aiProvider', 'litellm'),
+    provider: normalizeProvider(cfg.get<string>('aiProvider', 'litellm')),
     baseUrl: cfg.get<string>('aiBaseUrl', PROVIDER_PRESETS.litellm.baseUrl),
     apiKey: cfg.get<string>('aiApiKey', 'sk-local'),
     defaultModel: cfg.get<string>('aiDefaultModel', ''),
