@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { fetchTodoFull, readWikiTaskDetail } from './fetchTodo';
 import { CronJob, FilterMode, JiraIssue, ShowTodoFull, TodoNode, WikiTask, normalizeCategory } from './types';
+import { configuredWikiRoot, inspectLabel, inspectWikiRoot, isUsableWiki } from './wikiRoot';
 
 const ROOT_OFFICIAL = 'root-official';
 const ROOT_PRIVATE = 'root-private';
@@ -34,6 +35,11 @@ export class TodoTreeItem extends vscode.TreeItem {
       this.command = {
         command: 'todoView.refresh',
         title: 'Retry',
+      };
+    } else if (node.kind === 'action' && node.commandId) {
+      this.command = {
+        command: node.commandId,
+        title: node.label,
       };
     }
   }
@@ -138,6 +144,17 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
   }
 
   private async getRoots(): Promise<TodoNode[]> {
+    const root = configuredWikiRoot();
+    if (!root) {
+      this.loadedEmitter.fire(undefined);
+      return [];
+    }
+    const info = inspectWikiRoot(root);
+    if (!isUsableWiki(info)) {
+      this.loadedEmitter.fire(undefined);
+      return wikiSetupRecoveryNodes(info);
+    }
+
     await this.ensureLoaded();
 
     if (this.loadError) {
@@ -515,6 +532,32 @@ function filterByCategory(
     completed: wiki.completed.filter(keep),
     cancelled: wiki.cancelled.filter(keep),
   };
+}
+
+function wikiSetupRecoveryNodes(info: ReturnType<typeof inspectWikiRoot>): TodoNode[] {
+  return [
+    {
+      kind: 'action',
+      label: inspectLabel(info),
+      description: info.path,
+      tooltip: info.path,
+      iconId: 'warning',
+      iconColor: 'charts.orange',
+      commandId: 'todoView.pickWikiRoot',
+    },
+    {
+      kind: 'action',
+      label: 'Choose another folder…',
+      iconId: 'folder-opened',
+      commandId: 'todoView.pickWikiRoot',
+    },
+    {
+      kind: 'action',
+      label: 'What is a wiki folder?',
+      iconId: 'question',
+      commandId: 'todoView.getStarted',
+    },
+  ];
 }
 
 function emptyWiki(): import('./types').WikiChannel {

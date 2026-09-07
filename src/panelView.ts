@@ -108,6 +108,12 @@ export class TodoPanelViewProvider implements vscode.WebviewViewProvider {
       case 'openAiSettings':
         vscode.commands.executeCommand('todoView.openSettings');
         return;
+      case 'pickWikiRoot':
+        vscode.commands.executeCommand('todoView.pickWikiRoot');
+        return;
+      case 'getStarted':
+        vscode.commands.executeCommand('todoView.getStarted');
+        return;
       case 'openJiraIssue':
         if (msg.key) {
           vscode.env.openExternal(vscode.Uri.parse(jiraBrowseUrl(msg.key)));
@@ -182,8 +188,14 @@ export class TodoPanelViewProvider implements vscode.WebviewViewProvider {
       return `
         <div class="hero">
           <div class="hero-title">Task Beacon</div>
-          <div class="hero-sub empty">No data loaded yet.</div>
+          <div class="hero-sub empty">${
+            vscode.workspace.getConfiguration('todoView').get<string>('llmWikiRoot', '').trim()
+              ? 'No data loaded yet.'
+              : 'Choose a wiki folder to fill this board — an Obsidian vault with Tasks/*.md, or a repo with show_todo.py.'
+          }</div>
           <div class="actions">
+            <button data-action="pickWikiRoot">Choose folder…</button>
+            <button class="secondary" data-action="getStarted">What is this?</button>
             <button data-action="refresh">Refresh</button>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { getContext } from './extensionContext';
 import { AiProvider, PROVIDER_PRESETS, getAiSettings } from './aiConfig';
 import { jiraUsername } from './jiraConfig';
 import { HermesXaiLoginStatus, isExplicitAiKey, probeHermesXaiLogin } from './hermesXaiAuth';
+import { configuredWikiRoot, inspectLabel, inspectWikiRoot } from './wikiRoot';
 
 const JIRA_PASSWORD_SECRET_KEY = 'taskBeacon.jiraPassword';
 const GH_TOKEN_SECRET_KEY = 'taskBeacon.ghToken';
@@ -20,6 +21,8 @@ interface FormState {
   aiDefaultModel: string;
   xaiLogin: HermesXaiLoginStatus;
   llmWikiRoot: string;
+  wikiRootHint: string;
+  wikiRootOk: boolean;
   pythonPath: string;
   grafanaUrl: string;
   autoRefreshSec: number;
@@ -42,6 +45,8 @@ async function readState(): Promise<FormState> {
     aiDefaultModel: ai.defaultModel,
     xaiLogin: probeHermesXaiLogin(),
     llmWikiRoot: cfg.get<string>('llmWikiRoot', ''),
+    wikiRootHint: inspectLabel(inspectWikiRoot(configuredWikiRoot())),
+    wikiRootOk: Boolean(inspectWikiRoot(configuredWikiRoot()).kind),
     pythonPath: cfg.get<string>('pythonPath', 'python'),
     grafanaUrl: cfg.get<string>('grafanaUrl', ''),
     autoRefreshSec: cfg.get<number>('autoRefreshSec', 0),
@@ -134,6 +139,9 @@ function wireSettingsWebview(webview: vscode.Webview): void {
     } else if (msg.command === 'loginXai') {
       await vscode.commands.executeCommand('todoView.loginXai');
       webview.postMessage({ command: 'state', payload: await readState() });
+    } else if (msg.command === 'pickWikiRoot') {
+      await vscode.commands.executeCommand('todoView.pickWikiRoot');
+      webview.postMessage({ command: 'state', payload: await readState() });
     }
   });
 }
@@ -197,6 +205,8 @@ function renderHtml(webview: vscode.Webview): string {
   .hint { font-size: 0.8em; color: var(--vscode-descriptionForeground); margin-top: 0.2em; }
   .row { display: flex; align-items: center; gap: 0.5em; margin-top: 0.8em; }
   .row label { margin: 0; }
+  .path-row { display: flex; gap: 0.45em; align-items: center; }
+  .path-row input { flex: 1; }
   .xai-actions { display: flex; gap: 0.5em; margin: 0.55em 0 0.2em; flex-wrap: wrap; }
   button.secondary { padding: 5px 12px; border-radius: 3px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
   button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
@@ -255,8 +265,13 @@ function renderHtml(webview: vscode.Webview): string {
       </div>
 
       <div class="pane" data-pane="paths">
-        <label for="llmWikiRoot">LLMWiki repo root</label>
-        <input id="llmWikiRoot" type="text" />
+        <label for="llmWikiRoot">Wiki folder</label>
+        <div class="path-row">
+          <input id="llmWikiRoot" type="text" placeholder="Choose the folder that holds your tasks" />
+          <button type="button" class="secondary" id="wikiBrowse">Browse…</button>
+        </div>
+        <div id="wikiRootStatus" class="auth-status missing">Not set</div>
+        <div class="hint">Obsidian vault with Tasks/*.md, or a repo with scripts/show_todo.py. First-time users: Browse, don’t type a path.</div>
         <label for="pythonPath">Python executable</label>
         <input id="pythonPath" type="text" />
         <label for="grafanaUrl">Grafana URL</label>
@@ -367,7 +382,15 @@ function formScript(): string {
       else el.value = s[id];
     }
     applyXaiLogin(s);
+    applyWikiHint(s);
     syncProviderUi();
+  }
+
+  function applyWikiHint(s) {
+    const el = document.getElementById('wikiRootStatus');
+    if (!el) return;
+    el.className = 'auth-status ' + (s.wikiRootOk ? 'ok' : (s.llmWikiRoot ? 'expired' : 'missing'));
+    el.textContent = s.wikiRootHint || 'Not set — choose a folder to see tasks.';
   }
 
   function refreshDirtyState() {
@@ -405,6 +428,10 @@ function formScript(): string {
   const xaiRefreshBtn = document.getElementById('xaiRefresh');
   if (xaiRefreshBtn) {
     xaiRefreshBtn.addEventListener('click', () => vscode.postMessage({ command: 'refreshXaiLogin' }));
+  }
+  const wikiBrowseBtn = document.getElementById('wikiBrowse');
+  if (wikiBrowseBtn) {
+    wikiBrowseBtn.addEventListener('click', () => vscode.postMessage({ command: 'pickWikiRoot' }));
   }
 
   window.addEventListener('message', (event) => {
@@ -469,6 +496,8 @@ function renderSidebarHtml(webview: vscode.Webview): string {
   .hint { font-size: 0.76em; color: var(--vscode-descriptionForeground); margin-top: 0.2em; }
   .row { display: flex; align-items: center; gap: 0.5em; margin-top: 0.7em; }
   .row label { margin: 0; }
+  .path-row { display: flex; gap: 0.4em; align-items: center; }
+  .path-row input { flex: 1; }
   .xai-actions { display: flex; gap: 0.45em; margin: 0.5em 0 0.15em; flex-wrap: wrap; }
   button.secondary { padding: 4px 10px; border-radius: 3px; border: none; cursor: pointer; font-family: inherit; font-size: inherit; background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
   button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
@@ -526,8 +555,13 @@ function renderSidebarHtml(webview: vscode.Webview): string {
   <details>
     <summary>Paths</summary>
     <div class="section-body">
-      <label for="llmWikiRoot">LLMWiki repo root</label>
-      <input id="llmWikiRoot" type="text" />
+      <label for="llmWikiRoot">Wiki folder</label>
+      <div class="path-row">
+        <input id="llmWikiRoot" type="text" placeholder="Choose the folder that holds your tasks" />
+        <button type="button" class="secondary" id="wikiBrowse">Browse…</button>
+      </div>
+      <div id="wikiRootStatus" class="auth-status missing">Not set</div>
+      <div class="hint">Vault with Tasks/*.md, or a repo with scripts/show_todo.py.</div>
       <label for="pythonPath">Python executable</label>
       <input id="pythonPath" type="text" />
       <label for="grafanaUrl">Grafana URL</label>

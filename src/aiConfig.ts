@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { fetchModelHealthMap, ModelHealthStatus } from './aiClient';
 
-export type AiProvider = 'xai' | 'litellm' | 'openai' | 'anthropic' | 'ollama';
+export type AiProvider = 'xai' | 'ollama' | 'litellm' | 'openai' | 'anthropic';
 
 export interface AiSettings {
   provider: AiProvider;
@@ -15,10 +15,10 @@ export interface AiSettings {
  * apiKey/model alone if the user already customized them. */
 export const PROVIDER_PRESETS: Record<AiProvider, { baseUrl: string; label: string }> = {
   xai: { baseUrl: 'https://api.x.ai/v1', label: 'xAI (Grok)' },
+  ollama: { baseUrl: 'http://127.0.0.1:11434/v1', label: 'Ollama (local)' },
   litellm: { baseUrl: 'http://127.0.0.1:4000/v1', label: 'LiteLLM (local proxy)' },
   openai: { baseUrl: 'https://api.openai.com/v1', label: 'OpenAI' },
   anthropic: { baseUrl: 'https://api.anthropic.com/v1', label: 'Anthropic' },
-  ollama: { baseUrl: 'http://127.0.0.1:11434/v1', label: 'Ollama (local)' },
 };
 
 /** Static picker entries when the provider has no /model/info probe. */
@@ -48,16 +48,16 @@ export function discoverModels(
 function normalizeProvider(raw: string): AiProvider {
   if (raw === 'grok') return 'xai';
   if (raw in PROVIDER_PRESETS) return raw as AiProvider;
-  return 'litellm';
+  return 'xai';
 }
 
 export function getAiSettings(): AiSettings {
   const cfg = vscode.workspace.getConfiguration('todoView');
-  const provider = normalizeProvider(cfg.get<string>('aiProvider', 'litellm'));
+  const provider = normalizeProvider(cfg.get<string>('aiProvider', 'xai'));
   const storedModel = cfg.get<string>('aiDefaultModel', '');
   return {
     provider,
-    baseUrl: cfg.get<string>('aiBaseUrl', PROVIDER_PRESETS.litellm.baseUrl),
+    baseUrl: cfg.get<string>('aiBaseUrl', PROVIDER_PRESETS[provider].baseUrl),
     apiKey: cfg.get<string>('aiApiKey', 'sk-local'),
     defaultModel: storedModel || (provider === 'xai' ? 'grok-4.6' : ''),
   };

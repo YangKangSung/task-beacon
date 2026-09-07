@@ -13,6 +13,7 @@ import { registerCommands } from './commands';
 import { registerUpdateCheckCommand, runUpdateCheck } from './updateCheck';
 import { setContext } from './extensionContext';
 import { FilterMode, ShowTodoFull } from './types';
+import { configuredWikiRoot, maybeOfferWikiSetup, refreshSetupContext } from './wikiRoot';
 
 let autoRefreshTimer: NodeJS.Timeout | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
@@ -84,9 +85,6 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('todoView.focus', () =>
-      vscode.commands.executeCommand('todoView.focus')
-    ),
     vscode.commands.registerCommand('todoView.cycleFilter', () => {
       const cur = provider.getFilter();
       const idx = FILTER_CYCLE.indexOf(cur);
@@ -130,10 +128,12 @@ export function activate(context: vscode.ExtensionContext): void {
   registerCommands(context, provider);
   registerUpdateCheckCommand(context);
   void runUpdateCheck(context, false);
+  void refreshSetupContext().then(() => maybeOfferWikiSetup(context));
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('todoView')) {
+        void refreshSetupContext();
         provider.refresh();
         setupAutoRefresh(provider);
       }
@@ -152,7 +152,7 @@ function updateTreeMeta(
 ): void {
   if (!data) {
     treeView.badge = undefined;
-    treeView.description = 'load failed';
+    treeView.description = configuredWikiRoot() ? 'load failed' : 'choose wiki folder';
     return;
   }
   const jira = data.jira.ok ? data.jira.total : 0;
@@ -180,6 +180,12 @@ function updateTreeMeta(
 function updateStatusBar(data: ShowTodoFull | undefined): void {
   if (!statusBarItem) return;
   if (!data) {
+    if (!configuredWikiRoot()) {
+      statusBarItem.text = '$(sparkle) Beacon: set wiki folder';
+      statusBarItem.tooltip = 'Task Beacon — choose a wiki folder to get started.';
+      statusBarItem.backgroundColor = undefined;
+      return;
+    }
     statusBarItem.text = '$(sparkle) Beacon: err';
     statusBarItem.tooltip = 'Task Beacon — load failed. Click to open.';
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');

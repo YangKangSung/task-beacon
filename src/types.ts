@@ -70,7 +70,8 @@ export type TodoNodeKind =
   | 'jira'
   | 'task'
   | 'cron'
-  | 'error';
+  | 'error'
+  | 'action';
 
 export type FilterMode = 'all' | 'official' | 'private' | 'agent';
 
@@ -96,6 +97,8 @@ export interface TodoNode {
   cronGroup?: 'active' | 'idle' | 'failing';
   epicKey?: string;
   children?: TodoNode[];
+  /** Tree action row (setup / recovery). Runs this command on click. */
+  commandId?: string;
 }
 
 /** Raw shape of ~/.hermes/cron/jobs.json — used only to resolve a job's script path. */

@@ -79,6 +79,12 @@ export class TodoSummaryViewProvider implements vscode.WebviewViewProvider {
         this.triggerSummary();
         break;
       }
+      case 'pickWikiRoot':
+        vscode.commands.executeCommand('todoView.pickWikiRoot');
+        break;
+      case 'getStarted':
+        vscode.commands.executeCommand('todoView.getStarted');
+        break;
     }
   }
 
@@ -241,6 +247,29 @@ ${body}
 }
 
 function renderEmptyState(): string {
+  const needsWiki = !vscode.workspace.getConfiguration('todoView').get<string>('llmWikiRoot', '').trim();
+  if (needsWiki) {
+    return `<div class="empty">
+      <div class="empty-hero">
+        <div class="panel">
+          <span class="corner-tl"></span>
+          <span class="corner-br"></span>
+          <div class="kicker"><span class="dot"></span>FIRST RUN</div>
+          <p class="title">Choose a wiki folder</p>
+          <div class="rule"></div>
+          <p class="sub">Pick the Obsidian vault (Tasks/*.md) or the repo with show_todo.py. You do not type a settings path.</p>
+          <div class="actions" style="justify-content:center;margin-top:12px">
+            <button data-action="pickWikiRoot">Choose folder…</button>
+            <button class="secondary" data-action="getStarted">What is this?</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+  return renderStandbyEmpty();
+}
+
+function renderStandbyEmpty(): string {
   const beaconSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <path d="M9 21 L10.5 10 H13.5 L15 21 Z" fill="currentColor" fill-opacity="0.15"/>
     <circle cx="12" cy="7" r="1.8" fill="currentColor" fill-opacity="0.6"/>

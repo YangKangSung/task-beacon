@@ -1,5 +1,17 @@
 # Change Log
 
+## 0.14.11
+
+First-run setup like GitLens / Python / Kampff: empty-tree welcome, folder picker, walkthrough. New users pick a wiki folder instead of typing a settings path.
+
+## 0.14.10
+
+Read Obsidian vault `Tasks/*.md` when `scripts/show_todo.py` is missing. Hermes cron is loaded from the live jobs.json either way.
+
+## 0.14.9
+
+Default AI provider is xAI, then Ollama in the picker. Other providers stay available.
+
 ## 0.14.8
 
 xAI uses Hermes login (`hermes auth add xai-oauth` / SuperGrok or X Premium+), not a console API key. Settings shows login status and does not store the OAuth token.

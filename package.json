@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Hermes-first sidebar: Jira-style epics and tasks for company, personal, and agent work — including Hermes cron.",
-  "version": "0.14.8",
+  "version": "0.14.11",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -228,6 +228,22 @@
         "category": "Task Beacon"
       },
       {
+        "command": "todoView.pickWikiRoot",
+        "title": "Choose Wiki Folder...",
+        "icon": "$(folder-opened)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.useWorkspaceWikiRoot",
+        "title": "Use This Workspace as Wiki Folder",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.getStarted",
+        "title": "Get Started",
+        "category": "Task Beacon"
+      },
+      {
         "command": "todoView.loginXai",
         "title": "Log in to xAI via Hermes",
         "category": "Task Beacon"
@@ -243,8 +259,56 @@
         "category": "Task Beacon"
       }
     ],
+    "viewsWelcome": [
+      {
+        "view": "todoView",
+        "contents": "Task Beacon shows Official, Private, and Agent work in one tree.\n\nIt needs a **wiki folder** — an Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`.\n\nYou pick the folder. You do not type a settings path.\n\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)\n[What am I looking at?](command:todoView.getStarted)",
+        "when": "taskBeacon.needsWikiRoot"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "taskBeacon.getStarted",
+        "title": "Get Started with Task Beacon",
+        "description": "Point the sidebar at your tasks, then optionally add Hermes, xAI, and Jira.",
+        "steps": [
+          {
+            "id": "what",
+            "title": "What this sidebar is",
+            "description": "Official / Private / Agent work in one Jira-style tree.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
+            "media": {
+              "markdown": "walkthroughs/what.md"
+            }
+          },
+          {
+            "id": "wiki",
+            "title": "Choose the wiki folder",
+            "description": "An Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`.\n[Choose folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)",
+            "media": {
+              "markdown": "walkthroughs/wiki.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:todoView.llmWikiRoot"
+            ]
+          },
+          {
+            "id": "optional",
+            "title": "Optional: Hermes, xAI, Jira",
+            "description": "The tree works with only a wiki folder. Cron, Grok, and Jira are extras.\n[Open Settings](command:todoView.openSettings)",
+            "media": {
+              "markdown": "walkthroughs/optional.md"
+            }
+          }
+        ]
+      }
+    ],
     "menus": {
       "view/title": [
+        {
+          "command": "todoView.pickWikiRoot",
+          "when": "view == todoView && taskBeacon.needsWikiRoot",
+          "group": "navigation@0"
+        },
         {
           "command": "todoView.openSettings",
           "when": "view == todoView",
@@ -380,7 +444,7 @@
         "todoView.llmWikiRoot": {
           "type": "string",
           "default": "",
-          "description": "Path to LLMWiki repo (contains scripts/show_todo.py and tasks/<slug>.md)"
+          "description": "Wiki folder. Use Task Beacon: Choose Wiki Folder… — an Obsidian vault with Tasks/*.md, or a repo with scripts/show_todo.py."
         },
         "todoView.pythonPath": {
           "type": "string",
@@ -396,24 +460,24 @@
           "type": "string",
           "enum": [
             "xai",
+            "ollama",
             "litellm",
             "openai",
-            "anthropic",
-            "ollama"
+            "anthropic"
           ],
           "enumItemLabels": [
             "xAI (Grok)",
+            "Ollama",
             "LiteLLM (local proxy)",
             "OpenAI",
-            "Anthropic",
-            "Ollama"
+            "Anthropic"
           ],
-          "default": "litellm",
+          "default": "xai",
           "description": "AI model provider. xAI uses Hermes login (hermes auth add xai-oauth), not a console API key."
         },
         "todoView.aiBaseUrl": {
           "type": "string",
-          "default": "http://127.0.0.1:4000/v1",
+          "default": "https://api.x.ai/v1",
           "description": "Base URL for the AI provider's OpenAI-compatible API."
         },
         "todoView.aiApiKey": {

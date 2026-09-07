@@ -36,10 +36,9 @@ Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not commen
 ## Getting started
 
 1. Install **Task Beacon** from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=YangKangSung.task-beacon), or search the name in Extensions (`Ctrl+Shift+X`).
-2. Click the beacon icon in the Activity Bar (or open the **Task Beacon** panel).
-3. Run **Task Beacon: Settings...** from the Command Palette.
-4. Set **LLMWiki repo root** to a folder that contains `scripts/show_todo.py` and `tasks/`.
-5. If Hermes is installed locally, set **Hermes profile** (default `default`) so cron jobs show under Agent.
+2. Click the beacon icon in the Activity Bar. A Get Started walkthrough also appears after install.
+3. In the empty tree, click **Choose wiki folder…** (or **Use this workspace** if the open folder already has `Tasks/*.md`).
+4. That is enough to see Private / Agent wiki tasks. Jira and AI are optional, in Settings.
 
 Wiki tasks work without Hermes. Hermes cron is the reason Agent exists.
 
@@ -96,13 +95,13 @@ Older `veda-task` / `veda-cron` values still load; they show as `agent-task` / `
 |------|-----|
 | VS Code 1.80+ | Extension host |
 | [Hermes](https://github.com/NousResearch/hermes-agent) | Agent runtime. Cron is read from the live profile |
-| Python 3 | Runs `show_todo.py` for Jira + wiki |
-| A wiki folder | Must include `scripts/show_todo.py` |
+| Python 3 | Only if you use `scripts/show_todo.py` for Jira |
+| A wiki folder | Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py` |
 
 Optional:
 
 - **Jira** — set base URL and account via **Settings...** (password goes to Secret Storage)
-- **AI** — xAI (Grok) first, then LiteLLM, OpenAI, Anthropic, or Ollama. xAI uses the same Hermes login as SuperGrok / X Premium+ (`hermes auth add xai-oauth`), not a console API key.
+- **AI** — xAI (Grok) first, then Ollama, then LiteLLM, OpenAI, or Anthropic. xAI uses the same Hermes login as SuperGrok / X Premium+ (`hermes auth add xai-oauth`), not a console API key.
 
 Empty settings stay empty on purpose. No machine paths ship in the install.
 
@@ -114,13 +113,13 @@ Open **Task Beacon: Settings...**, or edit these keys:
 
 | Setting | Default | Purpose |
 |---------|---------|---------|
-| `todoView.llmWikiRoot` | *(empty)* | Wiki root with `scripts/show_todo.py` |
+| `todoView.llmWikiRoot` | *(empty)* | Vault with `Tasks/*.md`, or a repo with `show_todo.py` |
 | `todoView.pythonPath` | `python` | Python used to run that script |
 | `todoView.jiraBaseUrl` | *(empty)* | Jira site, no `/browse` |
 | `todoView.hermesProfile` | `default` | Hermes profile for cron |
 | `todoView.autoRefreshSec` | `0` | Auto-refresh; `0` is off |
-| `todoView.aiProvider` | `litellm` | `xai` / `litellm` / `openai` / `anthropic` / `ollama` |
-| `todoView.aiBaseUrl` | `http://127.0.0.1:4000/v1` | OpenAI-compatible API |
+| `todoView.aiProvider` | `xai` | `xai` / `ollama` / `litellm` / `openai` / `anthropic` |
+| `todoView.aiBaseUrl` | `https://api.x.ai/v1` | OpenAI-compatible API |
 | `todoView.aiApiKey` | `sk-local` | Optional. xAI uses Hermes login; local proxies use a proxy key |
 | `todoView.aiDefaultModel` | *(empty)* | Default model id |
 | `todoView.grafanaUrl` | *(empty)* | Optional Grafana URL for model stats; leave empty to hide |
@@ -131,7 +130,9 @@ Open **Task Beacon: Settings...**, or edit these keys:
 
 | Command | Does |
 |---------|------|
-| **Task Beacon: Settings...** | First-run setup |
+| **Task Beacon: Get Started** | Walkthrough for first-time users |
+| **Task Beacon: Choose Wiki Folder...** | Folder picker (do not type a path) |
+| **Task Beacon: Settings...** | Jira, AI, and optional paths |
 | **Task Beacon: Refresh** | Reload Jira / wiki / cron |
 | **Task Beacon: Cycle Filter** | All → Official → Private → Agent |
 | **Task Beacon: Search / Filter Tree...** | Filter the tree |
@@ -142,13 +143,9 @@ Open **Task Beacon: Settings...**, or edit these keys:
 
 ## How data is loaded
 
-The extension does not reimplement Jira or wiki parsing. It runs:
+Wiki tasks come from `Tasks/*.md` (or `tasks/*.md`) in the wiki root. If `scripts/show_todo.py` is present, that script still supplies Jira + wiki JSON.
 
-```text
-<llmWikiRoot>/scripts/show_todo.py --json full
-```
-
-Cron state is read from the live Hermes profile (`profiles/<name>/cron/`), not a copy.
+Cron state is read from the live Hermes `jobs.json` (profile or `%LOCALAPPDATA%\hermes\cron\`).
 
 Charts use an append-only log under the extension’s global storage (`history.jsonl`). Delete that file to reset the chart.
 
