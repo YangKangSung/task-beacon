@@ -36,9 +36,9 @@ Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not commen
 ## Getting started
 
 1. Install **Task Beacon** from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=YangKangSung.task-beacon), or search the name in Extensions (`Ctrl+Shift+X`).
-2. Click the beacon icon in the Activity Bar. A Get Started walkthrough also appears after install.
-3. The tree already has sample Official / Private / Agent tasks. Click around.
-4. When you want your own work, click **Choose wiki folder…** (or **Use this workspace** if the open folder already has `Tasks/*.md`). Jira and AI stay optional. Grafana is in Settings → AI if you watch on-prem models.
+2. A **Get Started** walkthrough opens after install (Command Palette → **Task Beacon: Get Started**). Follow the steps — samples first, then your folder.
+3. Click the beacon icon in the Activity Bar. The tree already has sample Official / Private / Agent tasks.
+4. When you want your own work, pick the **vault or repo root** (the folder that contains `Tasks/`, not `Tasks` itself). Jira, Hermes, AI, and Grafana stay optional.
 
 Wiki tasks work without Hermes. Hermes cron is the reason Agent exists.
 

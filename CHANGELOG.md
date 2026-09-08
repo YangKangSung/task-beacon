@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.16
+
+Expand the Get Started walkthrough for first-time setup: samples first, then wiki-folder cases (Obsidian vault root vs repo vs empty folder vs this workspace), plus optional Hermes, Jira, AI, and Grafana.
+
 ## 0.14.15
 
 The bottom Task Beacon panel, table, chart, and status bar use Official / Private / Agent — same owners as the tree — instead of Jira / Wiki / Cron. Grafana stays usable: the URL field is back in Settings → AI, and saving a URL opens the AI Health panel.

@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Hermes-first task board for company, personal, and agent work. Jira is optional — wiki + Hermes cron is enough.",
-  "version": "0.14.15",
+  "version": "0.14.16",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -273,7 +273,7 @@
     "viewsWelcome": [
       {
         "view": "todoView",
-        "contents": "Sample Official / Private / Agent tasks are already in the tree.\n\nWhen you want your own work, pick a wiki folder — an Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`. Jira is optional.\n\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)\n[What am I looking at?](command:todoView.getStarted)",
+        "contents": "Sample Official / Private / Agent tasks are already in the tree. That is normal on first launch.\n\nWhen you want your own work, pick the **vault or repo root** (the folder that contains `Tasks/`, not `Tasks` itself).\n\n[Get Started walkthrough](command:todoView.getStarted)\n[Choose wiki folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)",
         "when": "taskBeacon.needsWikiRoot"
       }
     ],
@@ -281,20 +281,28 @@
       {
         "id": "taskBeacon.getStarted",
         "title": "Get Started with Task Beacon",
-        "description": "Point the sidebar at your wiki. Jira is optional. Grafana is there if you watch on-prem models.",
+        "description": "A short walkthrough. Samples work first. Then pick a wiki folder. Jira, Hermes, AI, and Grafana are optional.",
         "steps": [
           {
             "id": "what",
             "title": "What this sidebar is",
-            "description": "Official / Private / Agent work in one Jira-style tree.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
+            "description": "Official / Private / Agent in one tree. Nothing is required yet.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
             "media": {
               "markdown": "walkthroughs/what.md"
             }
           },
           {
+            "id": "look",
+            "title": "Look around on samples",
+            "description": "Click the beacon icon, expand the three owners, then open the bottom panel (same strip as Terminal).\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
+            "media": {
+              "markdown": "walkthroughs/look.md"
+            }
+          },
+          {
             "id": "wiki",
-            "title": "Choose the wiki folder",
-            "description": "An Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py`.\n[Choose folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)",
+            "title": "Choose your wiki folder",
+            "description": "Pick the vault or repo **root** — the folder that contains `Tasks/` or `scripts/show_todo.py`. Not a single file.\n[Choose folder...](command:todoView.pickWikiRoot)\n[Use this workspace](command:todoView.useWorkspaceWikiRoot)",
             "media": {
               "markdown": "walkthroughs/wiki.md"
             },
@@ -303,11 +311,27 @@
             ]
           },
           {
-            "id": "optional",
-            "title": "Optional: Jira, Grafana, AI",
-            "description": "A wiki folder is enough. Skip Jira if your team uses something else. Set a Grafana URL in Settings to open the AI Health panel.\n[Open Settings](command:todoView.openSettings)",
+            "id": "hermes",
+            "title": "Hermes and Agent (optional)",
+            "description": "Skip if you only want wiki tasks. If Hermes is installed, Agent shows live cron with no extra path.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
             "media": {
-              "markdown": "walkthroughs/optional.md"
+              "markdown": "walkthroughs/hermes.md"
+            }
+          },
+          {
+            "id": "extras",
+            "title": "Optional: Jira, AI, Grafana",
+            "description": "Skip anything you do not use. Open Settings only for the pieces you need.\n[Open Settings](command:todoView.openSettings)",
+            "media": {
+              "markdown": "walkthroughs/extras.md"
+            }
+          },
+          {
+            "id": "done",
+            "title": "You are set",
+            "description": "Re-open this walkthrough anytime from the Command Palette.\n[Get Started](command:todoView.getStarted)\n[Open Settings](command:todoView.openSettings)",
+            "media": {
+              "markdown": "walkthroughs/done.md"
             }
           }
         ]

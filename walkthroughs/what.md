@@ -1,11 +1,15 @@
-# Task Beacon
+# What Task Beacon is
 
-The sidebar is a **Jira-style board** for three owners of work.
+Task Beacon is a **sidebar board** for work you already own. It does not replace Hermes, Jira, or Obsidian. It shows the same items in one tree.
 
-| You see | What it is |
-|---------|------------|
-| **Official** | Company / team work (wiki `official`; Jira only if you use Jira) |
-| **Private** | Your own wiki tasks |
-| **Agent** | Hermes agent tasks and Hermes cron |
+Three owners. Same epic → task shape Jira uses.
 
-You do not type a settings JSON path to start. Pick the folder that already holds your tasks.
+| You see | Whose work | Where it comes from |
+|---------|------------|---------------------|
+| **Official** | Company / team | Wiki files tagged `official`. Jira tickets only if you set Jira up. |
+| **Private** | You | Wiki files tagged `private` |
+| **Agent** | Hermes | Wiki agent tasks **and** live Hermes cron, if Hermes is installed |
+
+Nothing is required on first launch. Sample tasks are already in the tree so you can click around.
+
+Skip anything that does not match how you work. Linear, GitHub Issues, Notion, or markdown-only teams never need Jira.
