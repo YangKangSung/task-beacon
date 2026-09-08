@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Official, Private, and Agent tasks in one VS Code sidebar. A wiki folder is enough. Jira, Hermes, and Grafana are optional.",
-  "version": "0.14.17",
+  "version": "0.14.18",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -313,7 +313,7 @@
           {
             "id": "agent",
             "title": "Agent work (optional)",
-            "description": "Agent is wiki tasks you tag as agent work. Hermes cron is one extra source if you use Hermes — skip it otherwise.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
+            "description": "Cron is any recurring job. Hermes is only the live feed we read today. Other schedules stay in the wiki as `agent-cron`.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
             "media": {
               "markdown": "walkthroughs/agent.md"
             }

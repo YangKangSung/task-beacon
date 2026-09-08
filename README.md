@@ -23,11 +23,11 @@ The idea is simple: **Jira already got epics and tasks right.** Use that shape f
 |-------|-----------------|
 | **Company** (Official) | Team epics and tasks — wiki `official`, plus Jira *if* you use Jira |
 | **Personal** (Private) | Your own epics and tasks in the wiki |
-| **Agent** | Agent-owned wiki tasks. Live cron only if Hermes is installed |
+| **Agent** | Agent-owned wiki tasks and recurring jobs. Live cron today = Hermes, if installed |
 
 Epics group work. Tasks are the items. The tree, table, and dashboard are that management surface — filter by owner, open the epic or the task, see what is overdue or failing.
 
-Other agents (Cursor, Claude Code, Codex, …) are not wired as a live runtime. Put that work in the wiki with `category: agent-task` or `agent-cron`, same as Official and Private.
+Cron is not Hermes-only — crontab, Task Scheduler, GitHub Actions, and other agents all schedule work. Task Beacon only **reads live jobs from Hermes** right now. Everything else stays on the board as wiki `agent-task` / `agent-cron`.
 
 Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not comments in source.
 
@@ -40,7 +40,7 @@ Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not commen
 3. Click the beacon icon in the Activity Bar. The tree already has sample Official / Private / Agent tasks.
 4. When you want your own work, pick the **vault or repo root** (the folder that contains `Tasks/`, not `Tasks` itself). Jira, Hermes, AI, and Grafana stay optional.
 
-Wiki tasks work with no agent runtime. Hermes is optional — it adds live cron under Agent if you already use it.
+Wiki tasks work with no agent runtime. Hermes is optional — it is the one live cron adapter, not the definition of cron.
 
 ```text
 Command Palette → Task Beacon: Settings...
@@ -56,7 +56,7 @@ The tree is the same epic → task outline Jira uses, split by owner. Cycle owne
 |-------|--------------------|------|
 | **Official** | Wiki `official` (+ Jira only if configured) | — |
 | **Private** | Wiki `private` | — |
-| **Agent** | Wiki `agent-task` / `agent-cron` | Hermes cron, if Hermes is installed |
+| **Agent** | Wiki `agent-task` / `agent-cron` | Live Hermes jobs only (other cron stays in the wiki) |
 
 Wiki tasks can set `epic:` / `epic_link:` in frontmatter so they nest under an epic, just like Jira issues with an Epic Link. Items with no epic stay flat.
 
@@ -94,7 +94,7 @@ Older `veda-task` / `veda-cron` values still load; they show as `agent-task` / `
 | Need | Why |
 |------|-----|
 | VS Code 1.80+ | Extension host |
-| [Hermes](https://github.com/NousResearch/hermes-agent) | *Optional.* Live Agent cron if you already run Hermes |
+| [Hermes](https://github.com/NousResearch/hermes-agent) | *Optional.* The only live cron feed today. crontab and other schedulers are not read yet |
 | Python 3 | Only if you use `scripts/show_todo.py` for Jira |
 | A wiki folder | Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py` |
 
@@ -146,7 +146,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 
 Wiki tasks come from `Tasks/*.md` (or `tasks/*.md`) in the wiki root. If `scripts/show_todo.py` is present, that script still supplies Jira + wiki JSON.
 
-Cron state is read from the live Hermes `jobs.json` (profile or `%LOCALAPPDATA%\hermes\cron\`).
+The live cron feed is Hermes `jobs.json` (profile or `%LOCALAPPDATA%\hermes\cron\`). Other schedulers are not imported — use wiki `agent-cron` for those.
 
 Charts use an append-only log under the extension’s global storage (`history.jsonl`). Delete that file to reset the chart.
 

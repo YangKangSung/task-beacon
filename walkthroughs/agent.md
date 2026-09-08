@@ -1,13 +1,14 @@
 # Agent work (optional)
 
-**Agent is not Hermes-only.** It is the owner for agent-owned tasks and recurring jobs. You can fill it with wiki files even if you use another agent, or no agent at all.
+**Cron is not Hermes.** Cron means recurring jobs — system crontab, Task Scheduler, GitHub Actions, another agent’s scheduler, or a note you keep in the wiki. Hermes is only the live feed Task Beacon can read *today*.
+
+**Agent** is the owner for that kind of work. You do not need Hermes to use it.
 
 | Your setup | What Agent shows |
 |------------|------------------|
-| Wiki only (Claude, Cursor, Codex, nothing…) | Tasks tagged `agent-task` / `agent-cron` in `Tasks/*.md` |
-| Hermes installed, with cron | Those wiki tasks **plus** live Hermes jobs (pause / resume / run now) |
-| Hermes not installed | Wiki agent tasks only. Official and Private are unchanged |
+| Recurring work in the wiki | Files tagged `agent-cron` (and `agent-task` for one-off agent work) |
+| Hermes installed, with jobs | Those wiki rows **plus** live Hermes jobs (pause / resume / run now) |
+| crontab / Task Scheduler / another agent | Not read live yet. Keep the job in the wiki as `agent-cron` so it still appears on the board |
+| No Agent work | Skip this step. Official and Private are enough |
 
-Task Beacon does not drive other agents yet. For those, keep the work in the wiki (`category: agent-task` or `agent-cron`) the same way you keep Official and Private tasks.
-
-If you do use Hermes, cron is detected on this machine — you do not paste a path. Skip this whole step if you do not care about Agent yet.
+If you do use Hermes, jobs are detected on this machine — you do not paste a path.

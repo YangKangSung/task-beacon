@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.18
+
+Say cron is not Hermes-only. Hermes is the one live job feed today; other schedules stay on the board as wiki `agent-cron`.
+
 ## 0.14.17
 
 Stop leading with Hermes. The board is a wiki of Official / Private / Agent work. Hermes cron is optional, same as Jira. Other agents keep work in the wiki.

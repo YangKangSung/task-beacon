@@ -8,7 +8,7 @@ Three owners. Same epic → task shape Jira uses — you do not have to *use* Ji
 |---------|------------|---------------------|
 | **Official** | Company / team | Wiki files tagged `official`. Jira only if you set it up. |
 | **Private** | You | Wiki files tagged `private` |
-| **Agent** | An agent, or recurring automation | Wiki files tagged `agent-task` / `agent-cron`. Live cron only if Hermes is installed. |
+| **Agent** | An agent, or recurring automation | Wiki files tagged `agent-task` / `agent-cron`. One live cron feed exists today: Hermes, if it is installed. |
 
 Nothing is required on first launch. Sample tasks are already in the tree so you can click around.
 

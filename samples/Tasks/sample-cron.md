@@ -9,6 +9,6 @@ category: agent-cron
 
 # Task: [Sample] Recurring agent job
 
-**Agent → Cron** is live Hermes cron. This wiki row is a stand-in for an `agent-cron` task until Hermes jobs appear.
+**Agent → Cron** is recurring work. This wiki row is an `agent-cron` task — the same place you put crontab, Task Scheduler, or another agent’s jobs.
 
-Choose your wiki folder to load your own tasks. Cron still comes from the local Hermes profile.
+If Hermes is installed, live jobs appear here too. You do not need Hermes for this sample.
