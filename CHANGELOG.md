@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.17
+
+Stop leading with Hermes. The board is a wiki of Official / Private / Agent work. Hermes cron is optional, same as Jira. Other agents keep work in the wiki.
+
 ## 0.14.16
 
 Expand the Get Started walkthrough for first-time setup: samples first, then wiki-folder cases (Obsidian vault root vs repo vs empty folder vs this workspace), plus optional Hermes, Jira, AI, and Grafana.

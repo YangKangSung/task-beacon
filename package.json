@@ -1,8 +1,8 @@
 {
   "name": "task-beacon",
   "displayName": "Task Beacon",
-  "description": "Hermes-first task board for company, personal, and agent work. Jira is optional — wiki + Hermes cron is enough.",
-  "version": "0.14.16",
+  "description": "Official, Private, and Agent tasks in one VS Code sidebar. A wiki folder is enough. Jira, Hermes, and Grafana are optional.",
+  "version": "0.14.17",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -281,7 +281,7 @@
       {
         "id": "taskBeacon.getStarted",
         "title": "Get Started with Task Beacon",
-        "description": "A short walkthrough. Samples work first. Then pick a wiki folder. Jira, Hermes, AI, and Grafana are optional.",
+        "description": "A short walkthrough. Samples first, then a wiki folder. Hermes, Jira, AI, and Grafana are optional.",
         "steps": [
           {
             "id": "what",
@@ -311,11 +311,11 @@
             ]
           },
           {
-            "id": "hermes",
-            "title": "Hermes and Agent (optional)",
-            "description": "Skip if you only want wiki tasks. If Hermes is installed, Agent shows live cron with no extra path.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
+            "id": "agent",
+            "title": "Agent work (optional)",
+            "description": "Agent is wiki tasks you tag as agent work. Hermes cron is one extra source if you use Hermes — skip it otherwise.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
             "media": {
-              "markdown": "walkthroughs/hermes.md"
+              "markdown": "walkthroughs/agent.md"
             }
           },
           {

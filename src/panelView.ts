@@ -332,7 +332,7 @@ function renderKpiTiles(data: ShowTodoFull, history: SnapshotRecord[]): string {
       <div class="kpi" data-action="openAgentFilter">
         <div class="kpi-head">
           <span class="kpi-label">AGENT</span>
-          <span class="kpi-tag"><span class="kpi-dot agent"></span>Hermes</span>
+          <span class="kpi-tag"><span class="kpi-dot agent"></span>agent</span>
         </div>
         <div class="kpi-value">${stats.agent.open}</div>
         <div class="kpi-sub">${agentBits.join(' · ')}</div>
