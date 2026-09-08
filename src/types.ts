@@ -47,6 +47,13 @@ export interface CronJob {
   last_status: string;
   last_run: string | null;
   next_run: string | null;
+  /** Adapter id: hermes | task-beacon | claude | github-actions | opencode */
+  source?: string;
+  sourceLabel?: string;
+  /** Unprefixed id used by the native scheduler (Hermes CLI, etc.). */
+  nativeId?: string;
+  openPath?: string;
+  preview?: string;
 }
 
 export interface CronChannel {

@@ -1,18 +1,19 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import { spawn } from 'child_process';
-import { ShowTodoFull, HermesJobsFile, WikiChannel, WikiTask, CronChannel, normalizeCategory } from './types';
+import { ShowTodoFull, WikiChannel, WikiTask, normalizeCategory } from './types';
 import { jiraAuthEnv, jiraBaseUrl } from './jiraConfig';
 import { effectiveWikiRoot } from './wikiRoot';
+import { findCronJob, hermesNativeId, loadCronChannel, resolveCronScriptPath } from './cronAdapters';
+
+export { resolveCronScriptPath } from './cronAdapters';
 
 function config() {
   const cfg = vscode.workspace.getConfiguration('todoView');
   return {
     llmWikiRoot: effectiveWikiRoot(),
     pythonPath: cfg.get<string>('pythonPath', 'python'),
-    hermesProfile: cfg.get<string>('hermesProfile', 'default'),
   };
 }
 
@@ -85,7 +86,7 @@ export async function fetchTodoFull(): Promise<ShowTodoFull> {
         return;
       }
       try {
-        resolve(normalizeFetchedTodo(JSON.parse(stdout) as ShowTodoFull));
+        resolve(normalizeFetchedTodo(JSON.parse(stdout) as ShowTodoFull, llmWikiRoot));
       } catch (e) {
         reject(new Error(`Failed to parse show_todo.py output: ${(e as Error).message}\n${stdout.slice(0, 500)}`));
       }
@@ -104,15 +105,19 @@ function mapWikiTasks(wiki: WikiChannel): WikiChannel {
   };
 }
 
-function normalizeFetchedTodo(data: ShowTodoFull): ShowTodoFull {
-  return data.wiki ? { ...data, wiki: mapWikiTasks(data.wiki) } : data;
+function normalizeFetchedTodo(data: ShowTodoFull, root: string): ShowTodoFull {
+  return {
+    ...data,
+    wiki: data.wiki ? mapWikiTasks(data.wiki) : data.wiki,
+    cron: loadCronChannel(root),
+  };
 }
 
 function fetchFromVault(root: string): ShowTodoFull {
   return {
     jira: { ok: true, total: 0, in_progress: [], to_do: [], error: null },
     wiki: mapWikiTasks(scanVaultTasks(root)),
-    cron: loadHermesCron(),
+    cron: loadCronChannel(root),
   };
 }
 
@@ -215,83 +220,6 @@ function wikiStatusBucket(raw: string | undefined): 'pending' | 'active' | 'comp
   return 'pending';
 }
 
-function hermesCronJobsPath(): string | undefined {
-  const profile = config().hermesProfile;
-  const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
-  const candidates = [
-    path.join(localAppData, 'hermes', 'profiles', profile, 'cron', 'jobs.json'),
-    path.join(localAppData, 'hermes', 'cron', 'jobs.json'),
-    path.join(os.homedir(), '.hermes', 'profiles', profile, 'cron', 'jobs.json'),
-    path.join(os.homedir(), '.hermes', 'cron', 'jobs.json'),
-  ];
-  return candidates.find((p) => fs.existsSync(p));
-}
-
-function loadHermesCron(): CronChannel {
-  const jobsPath = hermesCronJobsPath();
-  if (!jobsPath) {
-    return { ok: true, error: null, jobs: [] };
-  }
-  try {
-    const parsed = JSON.parse(fs.readFileSync(jobsPath, 'utf-8')) as {
-      jobs?: Array<{
-        id?: string;
-        name?: string;
-        state?: string;
-        enabled?: boolean;
-        paused_at?: string | null;
-        schedule_display?: string;
-        schedule?: { display?: string } | string;
-        last_status?: string;
-        last_run_at?: string | null;
-        next_run_at?: string | null;
-      }>;
-    };
-    const jobs = (parsed.jobs ?? [])
-      .filter((j) => j.id && j.name)
-      .map((j) => {
-        const paused = Boolean(j.paused_at) || j.state === 'paused' || j.enabled === false;
-        const schedule =
-          j.schedule_display ||
-          (typeof j.schedule === 'string' ? j.schedule : j.schedule?.display) ||
-          '';
-        return {
-          id: j.id as string,
-          name: j.name as string,
-          state: paused ? 'paused' : 'active',
-          schedule,
-          last_status: j.last_status || '',
-          last_run: j.last_run_at ?? null,
-          next_run: j.next_run_at ?? null,
-        };
-      });
-    return { ok: true, error: null, jobs };
-  } catch (e) {
-    return { ok: false, error: (e as Error).message, jobs: [] };
-  }
-}
-
-/** show_todo.py's cron channel doesn't carry the job's `script` field
- * (it only surfaces id/state/name/schedule/last_status/next_run). The
- * script path only exists in the raw hermes jobs.json, so resolve it
- * there when the user wants to jump to a cron job's source file. */
-export function resolveCronScriptPath(jobId: string): string | undefined {
-  const jobsPath = hermesCronJobsPath();
-  if (!jobsPath) {
-    return undefined;
-  }
-  try {
-    const parsed: HermesJobsFile = JSON.parse(fs.readFileSync(jobsPath, 'utf-8'));
-    const job = parsed.jobs.find((j) => j.id === jobId);
-    const script = job?.script;
-    if (!script) return undefined;
-    if (path.isAbsolute(script)) return script;
-    return path.join(path.dirname(jobsPath), script);
-  } catch {
-    return undefined;
-  }
-}
-
 // hermes CLI cold-starts its Python venv on every invocation (~9-13s
 // measured) before it even reaches the cron subcommand — 30s covers that
 // plus slack so a genuinely hung process still gets killed instead of
@@ -302,8 +230,9 @@ const CRON_TOGGLE_TIMEOUT_MS = 30000;
  * resolution above by reading hermes state directly rather than duplicating
  * its scheduler logic in TypeScript. */
 export function setCronPaused(jobId: string, paused: boolean): Promise<void> {
+  const nativeId = hermesNativeId(jobId);
   return new Promise((resolve, reject) => {
-    const child = spawn('hermes', ['cron', paused ? 'pause' : 'resume', jobId], {
+    const child = spawn('hermes', ['cron', paused ? 'pause' : 'resume', nativeId], {
       windowsHide: true,
     });
     let stderr = '';
@@ -311,7 +240,7 @@ export function setCronPaused(jobId: string, paused: boolean): Promise<void> {
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill();
-      reject(new Error(`hermes cron ${paused ? 'pause' : 'resume'} ${jobId} timed out after ${CRON_TOGGLE_TIMEOUT_MS / 1000}s`));
+      reject(new Error(`hermes cron ${paused ? 'pause' : 'resume'} ${nativeId} timed out after ${CRON_TOGGLE_TIMEOUT_MS / 1000}s`));
     }, CRON_TOGGLE_TIMEOUT_MS);
 
     child.stderr.on('data', (d) => (stderr += d));
@@ -324,7 +253,7 @@ export function setCronPaused(jobId: string, paused: boolean): Promise<void> {
       clearTimeout(timer);
       if (timedOut) return;
       if (code !== 0) {
-        reject(new Error(`hermes cron ${paused ? 'pause' : 'resume'} ${jobId} exited ${code}: ${stderr.trim()}`));
+        reject(new Error(`hermes cron ${paused ? 'pause' : 'resume'} ${nativeId} exited ${code}: ${stderr.trim()}`));
         return;
       }
       resolve();
@@ -337,8 +266,9 @@ export function setCronPaused(jobId: string, paused: boolean): Promise<void> {
  * cost/timeout as pause/resume, so it reuses CRON_TOGGLE_TIMEOUT_MS. Used
  * both for "replay a failed run" and ad-hoc manual triggers. */
 export function triggerCronRun(jobId: string): Promise<void> {
+  const nativeId = hermesNativeId(jobId);
   return new Promise((resolve, reject) => {
-    const child = spawn('hermes', ['cron', 'run', jobId], {
+    const child = spawn('hermes', ['cron', 'run', nativeId], {
       windowsHide: true,
     });
     let stderr = '';
@@ -346,7 +276,7 @@ export function triggerCronRun(jobId: string): Promise<void> {
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill();
-      reject(new Error(`hermes cron run ${jobId} timed out after ${CRON_TOGGLE_TIMEOUT_MS / 1000}s`));
+      reject(new Error(`hermes cron run ${nativeId} timed out after ${CRON_TOGGLE_TIMEOUT_MS / 1000}s`));
     }, CRON_TOGGLE_TIMEOUT_MS);
 
     child.stderr.on('data', (d) => (stderr += d));
@@ -359,7 +289,7 @@ export function triggerCronRun(jobId: string): Promise<void> {
       clearTimeout(timer);
       if (timedOut) return;
       if (code !== 0) {
-        reject(new Error(`hermes cron run ${jobId} exited ${code}: ${stderr.trim()}`));
+        reject(new Error(`hermes cron run ${nativeId} exited ${code}: ${stderr.trim()}`));
         return;
       }
       resolve();
@@ -433,6 +363,10 @@ export function readWikiTaskDetail(file: string): WikiTaskDetail | undefined {
  * fallback) so the Summary view can show what the script actually does,
  * not just its schedule/status. */
 export function readCronScriptPreview(jobId: string): string | undefined {
+  const job = findCronJob(jobId);
+  if (job?.preview?.trim()) {
+    return job.preview.trim();
+  }
   const scriptPath = resolveCronScriptPath(jobId);
   if (!scriptPath || !fs.existsSync(scriptPath)) {
     return undefined;

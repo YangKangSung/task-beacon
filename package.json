@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Official, Private, and Agent tasks in one VS Code sidebar. A wiki folder is enough. Jira, Hermes, and Grafana are optional.",
-  "version": "0.14.18",
+  "version": "0.14.19",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -28,6 +28,10 @@
   ],
   "keywords": [
     "hermes",
+    "claude",
+    "cursor",
+    "copilot",
+    "agents",
     "todo",
     "jira",
     "cron",
@@ -281,7 +285,7 @@
       {
         "id": "taskBeacon.getStarted",
         "title": "Get Started with Task Beacon",
-        "description": "A short walkthrough. Samples first, then a wiki folder. Hermes, Jira, AI, and Grafana are optional.",
+        "description": "A short walkthrough. Samples first, then a wiki folder. Any agent can write the wiki. Jira, Hermes, AI, and Grafana are optional.",
         "steps": [
           {
             "id": "what",
@@ -313,7 +317,7 @@
           {
             "id": "agent",
             "title": "Agent work (optional)",
-            "description": "Cron is any recurring job. Hermes is only the live feed we read today. Other schedules stay in the wiki as `agent-cron`.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
+            "description": "Any agent can put work on the board. Live jobs come from wiki, `.task-beacon/jobs.json`, Hermes, Claude Code, GitHub Actions, or OpenCode.\n[Open Task Beacon](command:workbench.view.extension.todo-view)",
             "media": {
               "markdown": "walkthroughs/agent.md"
             }
@@ -418,32 +422,32 @@
         },
         {
           "command": "todoView.pauseCron",
-          "when": "view == todoView && viewItem == cron-active",
+          "when": "view == todoView && viewItem == cron-hermes-active",
           "group": "inline@2"
         },
         {
           "command": "todoView.resumeCron",
-          "when": "view == todoView && viewItem == cron-paused",
+          "when": "view == todoView && viewItem == cron-hermes-paused",
           "group": "inline@2"
         },
         {
           "command": "todoView.triggerCronRun",
-          "when": "view == todoView && viewItem =~ /^cron-/",
+          "when": "view == todoView && viewItem =~ /^cron-hermes-/",
           "group": "inline@3"
         },
         {
           "command": "todoView.pauseCron",
-          "when": "view == todoView && viewItem == cron-active",
+          "when": "view == todoView && viewItem == cron-hermes-active",
           "group": "1_modification"
         },
         {
           "command": "todoView.resumeCron",
-          "when": "view == todoView && viewItem == cron-paused",
+          "when": "view == todoView && viewItem == cron-hermes-paused",
           "group": "1_modification"
         },
         {
           "command": "todoView.triggerCronRun",
-          "when": "view == todoView && viewItem =~ /^cron-/",
+          "when": "view == todoView && viewItem =~ /^cron-hermes-/",
           "group": "1_modification"
         },
         {

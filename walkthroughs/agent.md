@@ -1,14 +1,19 @@
 # Agent work (optional)
 
-**Cron is not Hermes.** Cron means recurring jobs — system crontab, Task Scheduler, GitHub Actions, another agent’s scheduler, or a note you keep in the wiki. Hermes is only the live feed Task Beacon can read *today*.
+**Any agent can use this board.** Claude Code, Cursor, Codex, Copilot, Gemini, Cline, Windsurf, OpenCode, Hermes — they all write the same wiki files.
 
-**Agent** is the owner for that kind of work. You do not need Hermes to use it.
+**Agent** is the owner. You do not need Hermes.
 
-| Your setup | What Agent shows |
-|------------|------------------|
-| Recurring work in the wiki | Files tagged `agent-cron` (and `agent-task` for one-off agent work) |
-| Hermes installed, with jobs | Those wiki rows **plus** live Hermes jobs (pause / resume / run now) |
-| crontab / Task Scheduler / another agent | Not read live yet. Keep the job in the wiki as `agent-cron` so it still appears on the board |
-| No Agent work | Skip this step. Official and Private are enough |
+| How the work is stored | What Agent shows |
+|------------------------|------------------|
+| Wiki `agent-task` / `agent-cron` | Those rows. This is the universal contract |
+| `.task-beacon/jobs.json` in the wiki root | Live schedule list (any agent can write this file) |
+| Hermes installed | Live Hermes jobs — pause / resume / run now |
+| Claude Code `scheduled_tasks.json` | Live list if that file exists (project or `~/.claude`) |
+| GitHub Actions `on.schedule` | Workflow cron lines from `.github/workflows` |
+| OpenCode scheduler jobs on disk | Live list if those JSON files exist |
+| Cursor / Codex / Copilot cloud automations | Not local files. Keep a wiki `agent-cron` row and/or `.task-beacon/jobs.json` |
 
-If you do use Hermes, jobs are detected on this machine — you do not paste a path.
+Copy `AGENTS.md` from this walkthrough’s samples (or the Task Beacon repo) into your wiki root so the next agent knows the contract.
+
+If you have no Agent work, skip this step. Official and Private are enough.

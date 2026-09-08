@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.14.19
+
+Any agent can put work on the board. The contract is wiki `agent-task` / `agent-cron` plus optional `.task-beacon/jobs.json`. Live readers now include Hermes, Claude Code `scheduled_tasks.json`, GitHub Actions schedules, and OpenCode scheduler files. Pause / run stay Hermes-only. Cursor and Codex cloud automations stay as wiki / jobs-file rows.
+
 ## 0.14.18
 
 Say cron is not Hermes-only. Hermes is the one live job feed today; other schedules stay on the board as wiki `agent-cron`.

@@ -282,7 +282,7 @@ function cronRow(job: CronJob): Row {
     priority: '',
     due: '',
     age: age !== null ? `${age}d ago` : job.schedule,
-    extra: job.schedule,
+    extra: [job.sourceLabel, job.schedule].filter(Boolean).join(' · '),
     overdue: false,
     failing,
     sortKey: failing ? 8000 : job.state === 'active' ? 4000 : 1000,
@@ -299,7 +299,7 @@ function renderRow(r: Row): string {
     .join(' ');
   const badge = `<span class="badge ${r.owner}">${r.owner.toUpperCase()}</span>`;
   // Category badge (added 2026-07-25) — 4-category classification
-  const catBadge = r.category ? ` <span class="cat-badge cat-${r.category}">${esc(r.category)}</span>` : '';
+  const catBadge = r.category ? ` <span class="cat-badge cat-${esc(r.category)}">${esc(r.category)}</span>` : '';
   const idCell =
     r.kind === 'jira'
       ? `<div class="key">${esc(r.id)}</div><div class="title">${esc(r.title)}</div>`

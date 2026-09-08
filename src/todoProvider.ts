@@ -21,9 +21,7 @@ export class TodoTreeItem extends vscode.TreeItem {
     this.tooltip = node.tooltip ?? node.label;
     this.contextValue =
       node.kind === 'cron' && node.cronJob
-        ? node.cronJob.state === 'paused'
-          ? 'cron-paused'
-          : 'cron-active'
+        ? cronContextValue(node.cronJob)
         : node.kind;
 
     if (node.iconId) {
@@ -512,8 +510,8 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
             : [
                 {
                   kind: 'subhead',
-                  label: 'No cron jobs',
-                  description: '~/.hermes/cron/jobs.json empty',
+                  label: 'No live cron jobs',
+                  description: 'wiki agent-cron · .task-beacon/jobs.json · Hermes / Claude / Actions',
                   iconId: 'info',
                   iconColor: 'charts.foreground',
                 },
@@ -694,9 +692,14 @@ function jiraNode(issue: JiraIssue, group: 'in-progress' | 'to-do' | 'overdue'):
   };
 }
 
+function cronContextValue(job: CronJob): string {
+  const src = job.source === 'hermes' ? 'hermes' : 'other';
+  return job.state === 'paused' ? `cron-${src}-paused` : `cron-${src}-active`;
+}
+
 function cronNode(job: CronJob, group: 'active' | 'idle' | 'failing'): TodoNode {
   const status = job.last_status || 'never';
-  const desc = [job.schedule, statusSymbol(status)];
+  const desc = [job.sourceLabel, job.schedule, statusSymbol(status)].filter(Boolean);
   if (job.last_run) {
     const age = daysSinceIso(job.last_run);
     if (age !== null) desc.push(`${age}d ago`);
@@ -845,6 +848,7 @@ function buildCronTooltip(job: CronJob): vscode.MarkdownString {
     md.appendMarkdown(`> $(flame) **Failing** — last run status \`${job.last_status}\`\n\n`);
   }
   md.appendMarkdown(`- ID: \`${job.id}\`\n`);
+  if (job.sourceLabel) md.appendMarkdown(`- Source: \`${job.sourceLabel}\`\n`);
   md.appendMarkdown(`- State: \`${job.state}\`\n`);
   md.appendMarkdown(`- Schedule: \`${job.schedule}\`\n`);
   md.appendMarkdown(`- Last run: ${job.last_run ?? '_n/a_'} (\`${job.last_status}\`)\n`);

@@ -909,7 +909,7 @@ function formatCron(items: CronJob[]): string[] {
   if (items.length === 0) return ['(none)'];
   return items.slice(0, 20).map(
     (j) =>
-      `- ${j.name} [${j.state}] schedule ${j.schedule}, last ${j.last_status} @ ${j.last_run ?? '—'}, next ${j.next_run ?? '—'}`
+      `- ${j.name} [${j.sourceLabel ?? j.source ?? 'cron'} · ${j.state}] schedule ${j.schedule}, last ${j.last_status} @ ${j.last_run ?? '—'}, next ${j.next_run ?? '—'}`
   );
 }
 

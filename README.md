@@ -23,11 +23,13 @@ The idea is simple: **Jira already got epics and tasks right.** Use that shape f
 |-------|-----------------|
 | **Company** (Official) | Team epics and tasks — wiki `official`, plus Jira *if* you use Jira |
 | **Personal** (Private) | Your own epics and tasks in the wiki |
-| **Agent** | Agent-owned wiki tasks and recurring jobs. Live cron today = Hermes, if installed |
+| **Agent** | Agent-owned wiki tasks and recurring jobs. Any agent writes the same files |
 
 Epics group work. Tasks are the items. The tree, table, and dashboard are that management surface — filter by owner, open the epic or the task, see what is overdue or failing.
 
-Cron is not Hermes-only — crontab, Task Scheduler, GitHub Actions, and other agents all schedule work. Task Beacon only **reads live jobs from Hermes** right now. Everything else stays on the board as wiki `agent-task` / `agent-cron`.
+Any well-known agent can use the board: write `Tasks/*.md` with `category: agent-task` or `agent-cron`, and optionally `.task-beacon/jobs.json`. See [AGENTS.md](AGENTS.md).
+
+Live cron is read from Hermes, Claude Code `scheduled_tasks.json`, GitHub Actions `on.schedule`, OpenCode scheduler files, and `.task-beacon/jobs.json` when those files exist. Cursor / Codex / Copilot cloud automations are not local files — keep them as wiki `agent-cron` (and the jobs file if you want a schedule line). Pause / resume / run now are Hermes-only.
 
 Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not comments in source.
 
@@ -40,7 +42,7 @@ Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not commen
 3. Click the beacon icon in the Activity Bar. The tree already has sample Official / Private / Agent tasks.
 4. When you want your own work, pick the **vault or repo root** (the folder that contains `Tasks/`, not `Tasks` itself). Jira, Hermes, AI, and Grafana stay optional.
 
-Wiki tasks work with no agent runtime. Hermes is optional — it is the one live cron adapter, not the definition of cron.
+Wiki tasks work with no agent runtime. Hermes is optional — one live adapter among several, not the definition of cron.
 
 ```text
 Command Palette → Task Beacon: Settings...
@@ -56,7 +58,7 @@ The tree is the same epic → task outline Jira uses, split by owner. Cycle owne
 |-------|--------------------|------|
 | **Official** | Wiki `official` (+ Jira only if configured) | — |
 | **Private** | Wiki `private` | — |
-| **Agent** | Wiki `agent-task` / `agent-cron` | Live Hermes jobs only (other cron stays in the wiki) |
+| **Agent** | Wiki `agent-task` / `agent-cron` | Hermes, Claude Code, GitHub Actions, OpenCode, `.task-beacon/jobs.json` |
 
 Wiki tasks can set `epic:` / `epic_link:` in frontmatter so they nest under an epic, just like Jira issues with an Epic Link. Items with no epic stay flat.
 
@@ -94,7 +96,7 @@ Older `veda-task` / `veda-cron` values still load; they show as `agent-task` / `
 | Need | Why |
 |------|-----|
 | VS Code 1.80+ | Extension host |
-| [Hermes](https://github.com/NousResearch/hermes-agent) | *Optional.* The only live cron feed today. crontab and other schedulers are not read yet |
+| [Hermes](https://github.com/NousResearch/hermes-agent) | *Optional.* Live feed with pause / resume / run |
 | Python 3 | Only if you use `scripts/show_todo.py` for Jira |
 | A wiki folder | Obsidian vault with `Tasks/*.md`, or a repo with `scripts/show_todo.py` |
 
@@ -146,7 +148,15 @@ Open **Task Beacon: Settings...**, or edit these keys:
 
 Wiki tasks come from `Tasks/*.md` (or `tasks/*.md`) in the wiki root. If `scripts/show_todo.py` is present, that script still supplies Jira + wiki JSON.
 
-The live cron feed is Hermes `jobs.json` (profile or `%LOCALAPPDATA%\hermes\cron\`). Other schedulers are not imported — use wiki `agent-cron` for those.
+Live cron is merged from:
+
+- Hermes `jobs.json` (profile or `%LOCALAPPDATA%\hermes\cron\`)
+- `<wiki>/.task-beacon/jobs.json` (any agent)
+- Claude Code `.claude/scheduled_tasks.json` (wiki/workspace or `~/.claude`)
+- GitHub Actions `.github/workflows/*.yml` with `schedule`
+- OpenCode `~/.config/opencode/scheduler/**/jobs/*.json`
+
+Agents that only have a cloud scheduler should still write wiki `agent-cron` and/or `.task-beacon/jobs.json`. Copy [AGENTS.md](AGENTS.md) into the wiki root so the next agent sees the contract.
 
 Charts use an append-only log under the extension’s global storage (`history.jsonl`). Delete that file to reset the chart.
 

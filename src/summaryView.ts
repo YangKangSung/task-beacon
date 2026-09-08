@@ -461,6 +461,7 @@ function renderCron(job: CronJob, aiState?: AiSummaryState): string {
     ${alert}
     <dl>
       <dt>ID</dt><dd><code>${esc(job.id)}</code></dd>
+      ${job.sourceLabel ? `<dt>Source</dt><dd>${esc(job.sourceLabel)}</dd>` : ''}
       <dt>State</dt><dd><span class="status-pill neutral">${esc(job.state)}</span></dd>
       <dt>Schedule</dt><dd><code>${esc(job.schedule)}</code></dd>
       <dt>Last status</dt><dd><span class="status-pill ${statusClass}">${esc(job.last_status || 'never')}</span></dd>
@@ -470,7 +471,7 @@ function renderCron(job: CronJob, aiState?: AiSummaryState): string {
     ${preview ? `<div class="note">${esc(preview).replace(/\n/g, '<br/>')}</div>` : ''}
     ${renderAiBlock(aiState)}
     <div class="actions">
-      <button data-action="openCron" data-value="${esc(job.id)}">Open Script</button>
+      <button data-action="openCron" data-value="${esc(job.id)}">Open source</button>
       <button class="secondary" data-action="copyId" data-value="${esc(job.id)}">Copy ID</button>
     </div>
   `;

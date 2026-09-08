@@ -1,0 +1,11 @@
+{
+  "jobs": [
+    {
+      "id": "sample-weekly-review",
+      "name": "[Sample] Weekly review",
+      "schedule": "0 9 * * 1",
+      "state": "active",
+      "agent": "any"
+    }
+  ]
+}

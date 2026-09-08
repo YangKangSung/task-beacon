@@ -2,10 +2,11 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { TodoTreeItem, TodoTreeDataProvider } from './todoProvider';
 import { resolveCronScriptPath, setCronPaused, taskFilePath, triggerCronRun } from './fetchTodo';
+import { isHermesJob } from './cronAdapters';
 import { promptSelectAiModel } from './aiConfig';
 import { jiraBrowseUrl } from './jiraConfig';
 import { openSettingsPanel } from './settingsView';
-import { TodoNode } from './types';
+import { CronJob, TodoNode } from './types';
 import { isAiHealthEnabled, openGetStarted, pickWikiRoot, revealAiHealthPanel, seedSamplesIntoConfiguredRoot, useWorkspaceWikiRoot } from './wikiRoot';
 
 function toNode(item: TodoNode | TodoTreeItem | undefined): TodoNode | undefined {
@@ -66,9 +67,9 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
       if (!job) {
         return;
       }
-      const scriptPath = resolveCronScriptPath(job.id);
+      const scriptPath = job.openPath && fs.existsSync(job.openPath) ? job.openPath : resolveCronScriptPath(job.id);
       if (!scriptPath || !fs.existsSync(scriptPath)) {
-        vscode.window.showWarningMessage(`No script found for cron job "${job.name}"`);
+        vscode.window.showWarningMessage(`No source file found for cron job "${job.name}"`);
         return;
       }
       const doc = await vscode.workspace.openTextDocument(scriptPath);
@@ -145,6 +146,10 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
     vscode.commands.registerCommand('todoView.pauseCron', async (item?: TodoNode | TodoTreeItem) => {
       const job = toNode(item)?.cronJob;
       if (!job) return;
+      if (!isHermesJob(job)) {
+        await openNonHermesCron(job);
+        return;
+      }
       try {
         // hermes CLI cold-starts in ~10-13s — without a progress indicator the
         // click looks like a no-op for that whole window.
@@ -162,6 +167,10 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
     vscode.commands.registerCommand('todoView.resumeCron', async (item?: TodoNode | TodoTreeItem) => {
       const job = toNode(item)?.cronJob;
       if (!job) return;
+      if (!isHermesJob(job)) {
+        await openNonHermesCron(job);
+        return;
+      }
       try {
         await vscode.window.withProgress(
           { location: vscode.ProgressLocation.Notification, title: `Resuming ${job.name}...` },
@@ -177,6 +186,10 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
     vscode.commands.registerCommand('todoView.triggerCronRun', async (item?: TodoNode | TodoTreeItem) => {
       const job = toNode(item)?.cronJob;
       if (!job) return;
+      if (!isHermesJob(job)) {
+        await openNonHermesCron(job);
+        return;
+      }
       try {
         await vscode.window.withProgress(
           { location: vscode.ProgressLocation.Notification, title: `Triggering ${job.name}...` },
@@ -206,6 +219,20 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
     vscode.commands.registerCommand('todoView.useWorkspaceWikiRoot', useWorkspaceWikiRoot),
     vscode.commands.registerCommand('todoView.seedSamples', seedSamplesIntoConfiguredRoot),
     vscode.commands.registerCommand('todoView.getStarted', openGetStarted)
+  );
+}
+
+async function openNonHermesCron(job: CronJob): Promise<void> {
+  const source = job.sourceLabel || job.source || 'this scheduler';
+  const file = job.openPath && fs.existsSync(job.openPath) ? job.openPath : resolveCronScriptPath(job.id);
+  if (file && fs.existsSync(file)) {
+    const doc = await vscode.workspace.openTextDocument(file);
+    await vscode.window.showTextDocument(doc);
+    vscode.window.showInformationMessage(`Pause / run is only wired for Hermes. Edit the ${source} job here.`);
+    return;
+  }
+  vscode.window.showInformationMessage(
+    `Pause / run is only wired for Hermes. Keep this ${source} job on the board as wiki agent-cron or .task-beacon/jobs.json.`
   );
 }
 
