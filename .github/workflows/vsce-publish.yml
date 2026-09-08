@@ -1,7 +1,8 @@
-name: vsce-publish
+name: release
 
-# Publishes when package.json version changes.
-# Secret: VSCE_PAT (Marketplace Manage). Missing secret → skip, do not fail the repo.
+# Cuts a GitHub Release (tag + VSIX) when package.json version changes.
+# Also publishes to the Marketplace when VSCE_PAT is set and the gallery is behind.
+# Secret: VSCE_PAT (Marketplace Manage). Missing secret → still cut the GitHub Release.
 
 on:
   push:
@@ -10,48 +11,110 @@ on:
       - package.json
   workflow_dispatch:
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
 jobs:
-  publish:
+  release:
     if: github.repository == 'YangKangSung/task-beacon'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: skip without secret
+
+      - name: install
+        env:
+          NODE_ENV: development
+        run: npm ci
+
+      - name: typecheck
+        run: npx tsc -p tsconfig.json --noEmit
+
+      - name: package vsix
+        run: npm run package
+
+      - name: version and notes
+        id: meta
+        run: |
+          WANT=$(node -p "require('./package.json').version")
+          VSIX="task-beacon-${WANT}.vsix"
+          if [ ! -f "$VSIX" ]; then
+            echo "missing $VSIX" >&2
+            ls -la *.vsix || true
+            exit 1
+          fi
+          {
+            echo "## Task Beacon ${WANT}"
+            echo
+            awk -v ver="$WANT" '
+              $0 == "## " ver {p=1; next}
+              p && /^## / {exit}
+              p
+            ' CHANGELOG.md | sed -e 's/[[:space:]]*$//'
+          } > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "Task Beacon ${WANT}" > release-notes.md
+          fi
+          echo "want=$WANT" >> "$GITHUB_OUTPUT"
+          echo "tag=v${WANT}" >> "$GITHUB_OUTPUT"
+          echo "vsix=$VSIX" >> "$GITHUB_OUTPUT"
+          echo "notes:"
+          cat release-notes.md
+
+      - name: github release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          VSIX="${{ steps.meta.outputs.vsix }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$VSIX" --clobber
+            echo "updated assets on $TAG"
+          else
+            gh release create "$TAG" "$VSIX" \
+              --title "Task Beacon ${{ steps.meta.outputs.want }}" \
+              --notes-file release-notes.md
+            echo "created $TAG"
+          fi
+
+      - name: marketplace token
         id: pat
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           if [ -z "$VSCE_PAT" ]; then
             echo "has=false" >> "$GITHUB_OUTPUT"
-            echo "VSCE_PAT secret missing — skip"
+            echo "VSCE_PAT secret missing — GitHub Release only"
           else
             echo "has=true" >> "$GITHUB_OUTPUT"
           fi
+
       - name: compare gallery
         if: steps.pat.outputs.has == 'true'
         id: cmp
         run: |
-          WANT=$(node -p "require('./package.json').version")
+          WANT="${{ steps.meta.outputs.want }}"
           LIVE=$(npx --yes @vscode/vsce show YangKangSung.task-beacon 2>/dev/null | awk '/Version:/{print $2; exit}')
           echo "want=$WANT live=${LIVE:-none}"
-          echo "want=$WANT" >> "$GITHUB_OUTPUT"
           if [ -n "$LIVE" ] && [ "$LIVE" = "$WANT" ]; then
             echo "newer=false" >> "$GITHUB_OUTPUT"
           else
             echo "newer=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: publish
+
+      - name: publish marketplace
         if: steps.pat.outputs.has == 'true' && steps.cmp.outputs.newer == 'true'
         env:
-          NODE_ENV: development
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          npm ci
-          npx tsc -p tsconfig.json --noEmit
-          npx @vscode/vsce publish -p "$VSCE_PAT" --no-dependencies \
-            --baseContentUrl https://github.com/YangKangSung/task-beacon/raw/main \
-            --baseImagesUrl https://github.com/YangKangSung/task-beacon/raw/main
+          npx @vscode/vsce publish -p "$VSCE_PAT" --packagePath "${{ steps.meta.outputs.vsix }}" --no-dependencies
           npx @vscode/vsce show YangKangSung.task-beacon | head -20

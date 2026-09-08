@@ -46,7 +46,7 @@ public 배포판은 사내/개인 인프라 값을 의도적으로 제거했다.
 - package.json의 publisher("YangKangSung")와 name("task-beacon")을 바꾸지 말 것(vsce 서명/식별자). Marketplace id는 YangKangSung.task-beacon.
 - resources/icon.png, resources/beacon.svg는 manifest가 참조하므로 삭제/이름변경 금지.
 - .github/workflows/build.yml는 CI 스모크(tsc+build) — 삭제하지 말 것.
-- .github/workflows/vsce-publish.yml는 Marketplace 게시(kampff와 동일: VSCE_PAT, version 비교 후 publish). 삭제하지 말 것.
+- .github/workflows/vsce-publish.yml는 릴리스 파이프라인: VSIX 패키징, GitHub Release(`vX.Y.Z` + vsix), Marketplace 게시(VSCE_PAT, version 비교). 삭제하지 말 것.
 - git 히스토리는 단일 스냅샷으로 시작한다. 과거 히스토리 복원 시도는 불필요.
 - 복구 후 반드시 2~4단계 검증을 다시 실행하여 통과를 확인하고, 변경 요약을 보고하라.
 ```

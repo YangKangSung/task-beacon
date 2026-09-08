@@ -176,6 +176,8 @@ npm run package
 code --install-extension task-beacon-*.vsix --force
 ```
 
+Each `package.json` version bump on `main` cuts a [GitHub Release](https://github.com/YangKangSung/task-beacon/releases) (`vX.Y.Z` + `task-beacon-X.Y.Z.vsix`) and publishes to the Marketplace when `VSCE_PAT` is set.
+
 If the repo is damaged, paste [AI-RECOVERY.md](AI-RECOVERY.md) into a coding agent.
 
 ---
