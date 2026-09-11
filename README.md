@@ -5,8 +5,9 @@
 <h1 align="center">Task Beacon</h1>
 
 <p align="center">
-  <strong>Official, Private, and Agent tasks in one VS Code sidebar.</strong><br>
-  Jira’s epic / task model. A wiki folder is enough. Jira, Hermes, and Grafana are optional.
+  <strong>A lens for owned work — not another place to run it.</strong><br>
+  Official, Private, and Agent in one VS Code sidebar.<br>
+  Keep Jira, Hermes, Claude Code, GitHub Actions, and OpenCode. A wiki folder is enough.
 </p>
 
 <p align="center">
@@ -17,21 +18,29 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
 
-The idea is simple: **Jira already got epics and tasks right.** Use that shape for three owners. The source of truth is a wiki folder. You do not need Jira, and you do not need [Hermes](https://github.com/NousResearch/hermes-agent).
+Agents already have boards and crons. Companies already have Jira. Personal work already lives in a vault. Those stay where they are.
+
+**Task Beacon does not replace them.** It reads a wiki folder, optional Jira, and the local job files those tools already write — then shows company, personal, and agent work as one tree you can filter and open.
+
+That is the product: one sidebar, three owners, the files you already have. You do not need Jira, and you do not need [Hermes](https://github.com/NousResearch/hermes-agent).
+
+### Why it stays easy
+
+- **Install and look.** Click the beacon icon. Sample Official / Private / Agent rows are already there. A Get Started walkthrough opens after install.
+- **A folder is enough.** Point at the vault or repo root that contains `Tasks/`. Wiki tasks show up with no agent runtime and no Jira.
+- **Skip what you do not use.** Jira, Hermes, AI, and Grafana stay empty until you fill them. Official still works from wiki notes tagged `official`.
+- **Filter, then open.** Cycle All → Official → Private → Agent. Click a row to open the Jira ticket, the markdown task, or the cron script.
+- **Agents use the same files.** Any agent writes `Tasks/*.md` (`category: agent-task` or `agent-cron`) and optionally `.task-beacon/jobs.json`. See [AGENTS.md](AGENTS.md).
+
+Live cron is merged when the files exist: Hermes, Claude Code `scheduled_tasks.json`, GitHub Actions `on.schedule`, OpenCode scheduler files, and `.task-beacon/jobs.json`. Cursor / Codex / Copilot cloud automations are not local files — keep those as wiki `agent-cron` (and the jobs file if you want a schedule line). Pause / resume / run now are Hermes-only.
+
+The shape is still Jira’s: epics group work, tasks are the items. Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not comments in source.
 
 | Owner | What you manage |
 |-------|-----------------|
 | **Company** (Official) | Team epics and tasks — wiki `official`, plus Jira *if* you use Jira |
 | **Personal** (Private) | Your own epics and tasks in the wiki |
 | **Agent** | Agent-owned wiki tasks and recurring jobs. Any agent writes the same files |
-
-Epics group work. Tasks are the items. The tree, table, and dashboard are that management surface — filter by owner, open the epic or the task, see what is overdue or failing.
-
-Any well-known agent can use the board: write `Tasks/*.md` with `category: agent-task` or `agent-cron`, and optionally `.task-beacon/jobs.json`. See [AGENTS.md](AGENTS.md).
-
-Live cron is read from Hermes, Claude Code `scheduled_tasks.json`, GitHub Actions `on.schedule`, OpenCode scheduler files, and `.task-beacon/jobs.json` when those files exist. Cursor / Codex / Copilot cloud automations are not local files — keep them as wiki `agent-cron` (and the jobs file if you want a schedule line). Pause / resume / run now are Hermes-only.
-
-Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not comments in source.
 
 ---
 
