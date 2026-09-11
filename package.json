@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Official, Private, and Agent tasks in one VS Code sidebar. A wiki folder is enough. Jira, Hermes, and Grafana are optional.",
-  "version": "0.14.19",
+  "version": "0.14.20",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
