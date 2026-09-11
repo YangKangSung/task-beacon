@@ -18,6 +18,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license"></a>
 </p>
 
+<p align="center">
+  <img src="resources/hero.png" width="920" alt="Task Beacon sidebar: Official, Private, and Agent sample tasks, with the selected wiki file open">
+</p>
+
 Agents already have boards and crons. Companies already have Jira. Personal work already lives in a vault. Those stay where they are.
 
 **Task Beacon does not replace them.** It reads a wiki folder, optional Jira, and the local job files those tools already write — then shows company, personal, and agent work as one tree you can filter and open.
