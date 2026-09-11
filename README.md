@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <img src="resources/hero.png" width="920" alt="Task Beacon sidebar: Official, Private, and Agent sample tasks, with the selected wiki file open">
+  <img src="resources/hero.png" width="920" alt="Task Beacon sample workspace: Tree, Summary, Table, Chart, Cron Runs, and the bottom Task Beacon panel">
 </p>
 
 Agents already have boards and crons. Companies already have Jira. Personal work already lives in a vault. Those stay where they are.
