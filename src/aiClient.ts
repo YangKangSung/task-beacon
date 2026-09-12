@@ -3,7 +3,7 @@ import * as https from 'https';
 import { AiSettings } from './aiConfig';
 import { isExplicitAiKey, isHermesXaiTokenExpired, readHermesXaiAccessToken } from './hermesXaiAuth';
 
-export type SummaryKind = 'jira' | 'wiki' | 'cron' | 'insights';
+export type SummaryKind = 'jira' | 'wiki' | 'cron' | 'insights' | 'plan';
 
 const INSTRUCTIONS: Record<SummaryKind, string> = {
   jira:
@@ -21,6 +21,14 @@ const INSTRUCTIONS: Record<SummaryKind, string> = {
     '**Blockers / risks** — 1-3 bullets, anything failing, stalled >7 days, or missing info.\n' +
     '**Next actions** — 2-4 bullets in imperative form ("Ping X on Y", "Restart cron Z").\n' +
     'No preamble, no filler, no closing summary. Total under 200 words. Markdown bullets only.',
+  plan:
+    'You split one piece of work into subtasks an unattended coding agent can do alone. ' +
+    'Each subtask has a kind: research (find facts, read docs/code), analysis (compare, decide, write findings), ' +
+    'implement (change files, run checks), or schedule (recurring work; include a 5-field cron expression). ' +
+    'Reuse the shape of the finished reference work when it is given. ' +
+    'Keep 1-6 subtasks. Each prompt must be self-contained: the agent has no chat history. ' +
+    'Reply with JSON only, no markdown fences, exactly this shape:\n' +
+    '{"summary":"one line","subtasks":[{"kind":"research|analysis|implement|schedule","title":"short","prompt":"what to do and what done looks like","schedule":"cron or empty"}]}',
 };
 
 /** Real chat-completions call, OpenAI-compatible (works against LiteLLM/

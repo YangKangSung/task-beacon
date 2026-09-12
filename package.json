@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Official, Private, and Agent tasks in one VS Code sidebar. A wiki folder is enough. Jira, Hermes, and Grafana are optional.",
-  "version": "0.14.20",
+  "version": "0.15.0",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -264,6 +264,21 @@
         "category": "Task Beacon"
       },
       {
+        "command": "todoView.delegate",
+        "title": "Delegate to Agent...",
+        "icon": "$(rocket)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.delegateNode",
+        "title": "Delegate to Agent (split this)"
+      },
+      {
+        "command": "todoView.runWithAgent",
+        "title": "Run with Agent",
+        "icon": "$(run)"
+      },
+      {
         "command": "todoView.checkForUpdates",
         "title": "Check for Updates",
         "category": "Task Beacon"
@@ -374,6 +389,11 @@
           "group": "navigation@5"
         },
         {
+          "command": "todoView.delegate",
+          "when": "view == todoView",
+          "group": "2_agent@1"
+        },
+        {
           "command": "todoView.filterAll",
           "when": "view == todoView",
           "group": "1_filter@1"
@@ -459,6 +479,16 @@
           "command": "todoView.changeStatus",
           "when": "view == todoView && viewItem == task",
           "group": "1_modification"
+        },
+        {
+          "command": "todoView.runWithAgent",
+          "when": "view == todoView && viewItem == task",
+          "group": "2_agent@1"
+        },
+        {
+          "command": "todoView.delegateNode",
+          "when": "view == todoView && viewItem =~ /^(task|epic)$/",
+          "group": "2_agent@2"
         },
         {
           "command": "todoView.showDetails",
@@ -548,6 +578,11 @@
           "type": "string",
           "default": "default",
           "description": "Hermes profile name whose cron state (jobs.json, output/) is displayed."
+        },
+        "todoView.agentRunner": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Command that runs one agent task file, opened in a VS Code terminal. Placeholders: `{file}` (absolute task path), `{title}`, `{root}` (wiki folder). Examples: `hermes chat -q \"Read {file} and do it. Set status: done when finished.\"` or `claude -p \"Do the task in {file}. Set status: done when finished.\"`. Leave empty to only write the files."
         }
       }
     }

@@ -39,4 +39,8 @@ Categories: `official` | `private` | `agent-task` | `agent-cron`
 
 Task Beacon also live-reads Hermes, Claude Code `scheduled_tasks.json`, GitHub Actions `on.schedule`, and OpenCode scheduler files when they exist on disk. Cursor / Codex / Copilot cloud schedules are not local files — use the wiki or `.task-beacon/jobs.json`.
 
+## Delegated tasks
+
+Files written by Task Beacon's **Delegate to Agent** carry `kind:`, `epic:`, `refs:` (finished tasks to read first) and a `## Result` section. Do the Goal, write under Result, set `status: done` or `status: blocked`. Never touch `official` / `private` files unless told.
+
 Do not write secrets.

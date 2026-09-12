@@ -7,7 +7,8 @@ import { promptSelectAiModel } from './aiConfig';
 import { jiraBrowseUrl } from './jiraConfig';
 import { openSettingsPanel } from './settingsView';
 import { CronJob, TodoNode } from './types';
-import { isAiHealthEnabled, openGetStarted, pickWikiRoot, revealAiHealthPanel, seedSamplesIntoConfiguredRoot, useWorkspaceWikiRoot } from './wikiRoot';
+import { effectiveWikiRoot, isAiHealthEnabled, openGetStarted, pickWikiRoot, revealAiHealthPanel, seedSamplesIntoConfiguredRoot, useWorkspaceWikiRoot } from './wikiRoot';
+import { DelegateResult, delegateFromFile, delegateFromInput, runAllWithAgent, runTaskWithAgent, runnerTemplate } from './agentDelegate';
 
 function toNode(item: TodoNode | TodoTreeItem | undefined): TodoNode | undefined {
   if (!item) return undefined;
@@ -218,8 +219,61 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
     vscode.commands.registerCommand('todoView.pickWikiRoot', pickWikiRoot),
     vscode.commands.registerCommand('todoView.useWorkspaceWikiRoot', useWorkspaceWikiRoot),
     vscode.commands.registerCommand('todoView.seedSamples', seedSamplesIntoConfiguredRoot),
-    vscode.commands.registerCommand('todoView.getStarted', openGetStarted)
+    vscode.commands.registerCommand('todoView.getStarted', openGetStarted),
+
+    vscode.commands.registerCommand('todoView.delegate', async () => {
+      const result = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: 'Beacon: planning subtasks…' },
+        () => delegateFromInput()
+      );
+      await afterDelegate(provider, result);
+    }),
+
+    vscode.commands.registerCommand('todoView.delegateNode', async (item?: TodoNode | TodoTreeItem) => {
+      const node = toNode(item);
+      const file = node?.wikiTask?.file ?? (node?.epicKey?.endsWith('.md') ? node.epicKey : undefined);
+      if (!file) return;
+      const result = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: 'Beacon: planning subtasks…' },
+        () => delegateFromFile(file)
+      );
+      await afterDelegate(provider, result);
+    }),
+
+    vscode.commands.registerCommand('todoView.runWithAgent', async (item?: TodoNode | TodoTreeItem) => {
+      const file = toNode(item)?.wikiTask?.file;
+      if (!file) return;
+      await runTaskWithAgent(file);
+      provider.refresh();
+    })
   );
+}
+
+async function afterDelegate(provider: TodoTreeDataProvider, result: DelegateResult | undefined): Promise<void> {
+  if (!result) return;
+  provider.refresh();
+  const oneOffs = result.taskFiles.length - result.cronIds.length;
+  const parts = [`${result.taskFiles.length} task file${result.taskFiles.length === 1 ? '' : 's'}`];
+  if (result.cronIds.length) parts.push(`${result.cronIds.length} cron row${result.cronIds.length === 1 ? '' : 's'} in .task-beacon/jobs.json`);
+  if (result.refs.length) parts.push(`${result.refs.length} finished reference${result.refs.length === 1 ? '' : 's'} attached`);
+  const head = result.plan.planned ? 'Delegated' : 'Delegated (no AI split)';
+  const msg = `${head}: ${parts.join(', ')}.${result.plan.note ? ` ${result.plan.note}` : ''}`;
+
+  const actions: string[] = ['Open epic'];
+  if (oneOffs > 0 && runnerTemplate()) actions.unshift(`Run ${oneOffs} now`);
+  const pick = await vscode.window.showInformationMessage(msg, ...actions);
+  if (!pick) return;
+  if (pick.startsWith('Run ')) {
+    const n = runAllWithAgent(effectiveWikiRoot(), result);
+    vscode.window.setStatusBarMessage(`Beacon: handed ${n} task${n === 1 ? '' : 's'} to the agent runner`, 4000);
+    provider.refresh();
+    return;
+  }
+  const filePath = taskFilePath(result.epicFile);
+  if (fs.existsSync(filePath)) {
+    const doc = await vscode.workspace.openTextDocument(filePath);
+    await vscode.window.showTextDocument(doc);
+  }
 }
 
 async function openNonHermesCron(job: CronJob): Promise<void> {

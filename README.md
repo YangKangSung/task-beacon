@@ -104,6 +104,28 @@ Older `veda-task` / `veda-cron` values still load; they show as `agent-task` / `
 
 ---
 
+## Delegate to an agent
+
+Longer work you do not want to babysit: **Task Beacon: Delegate to Agent…** (or right-click a task / epic → *Delegate to Agent (split this)*).
+
+What happens, in files you can read:
+
+1. If AI is configured, the brief is split into 1–6 subtasks by kind — `research`, `analysis`, `implement`, `schedule`. Without AI you get one task and a note saying so.
+2. Finished tasks in the same wiki (`status: done`) with overlapping words are attached as **references** — in the frontmatter (`refs:`) and in the body — so similar work follows the shape that already worked.
+3. Task Beacon writes `Projects/<slug>.md` plus `Tasks/<slug>-NN-<kind>.md`, each `category: agent-task`. A `schedule` subtask becomes `agent-cron` and a row in `.task-beacon/jobs.json`.
+4. Each file carries the rules the agent needs: work alone, write under **Result**, set `status: done` or `status: blocked`.
+
+Running is still your runtime's job. Set `todoView.agentRunner` to a command template and **Run with Agent** (or *Run n now* after delegating) opens a terminal per task:
+
+```
+hermes chat -q "Read {file} and do it. Set status: done when finished."
+claude -p "Do the task in {file}. Set status: done when finished."
+```
+
+Only `agent-task` / `agent-cron` rows can be handed off. Official and Private never run unattended. Nothing runs if the runner is empty — the files are still written, and the board shows them.
+
+---
+
 ## Requirements
 
 | Need | Why |
@@ -139,6 +161,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | `todoView.aiApiKey` | `sk-local` | Optional. xAI uses Hermes login; local proxies use a proxy key |
 | `todoView.aiDefaultModel` | *(empty)* | Default model id |
 | `todoView.grafanaUrl` | *(empty)* | Grafana URL. Set it to show the AI Health panel |
+| `todoView.agentRunner` | *(empty)* | Command template for **Run with Agent**: `{file}`, `{title}`, `{root}`. Empty = write files only |
 
 ---
 
@@ -153,6 +176,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | **Task Beacon: Cycle Filter** | All → Official → Private → Agent |
 | **Task Beacon: Search / Filter Tree...** | Filter the tree |
 | **Task Beacon: Select AI Model...** | Pick a model when AI is configured |
+| **Task Beacon: Delegate to Agent...** | Split a brief into agent task files, attach finished references, hand off to your runner |
 | **Task Beacon: Log in to xAI via Hermes** | Device login (`hermes auth add xai-oauth`) |
 
 ---

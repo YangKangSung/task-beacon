@@ -31,6 +31,19 @@ Optional: `epic: Projects/some-epic.md`
 
 Do not invent Jira keys. Do not write secrets, tokens, or API keys.
 
+## Delegated tasks
+
+Task Beacon's **Delegate to Agent** writes `Projects/<slug>.md` and `Tasks/<slug>-NN-<kind>.md`. Those task files add:
+
+```yaml
+kind: research        # research | analysis | implement | schedule
+epic: Projects/<slug>.md
+refs: Tasks/a.md, Tasks/b.md   # finished tasks with similar wording — read them first
+delegated: 2026-09-12
+```
+
+If you are given one of these files: read the references, do the **Goal**, write under `## Result`, then set `status: done` (or `status: blocked` with a reason). Do not ask the human mid-task. Do not touch `official` or `private` files unless the task says so.
+
 ## Recurring jobs
 
 1. Always add a wiki `agent-cron` task so the row appears even when a scheduler has no local file.

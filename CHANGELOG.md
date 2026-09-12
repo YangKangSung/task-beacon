@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.15.0
+
+Delegate to Agent. A brief becomes `Projects/<slug>.md` plus `Tasks/<slug>-NN-<kind>.md` subtasks (research / analysis / implement / schedule) when AI is configured, or one task when it is not. Finished tasks in the same wiki are attached as references so similar work keeps the shape that worked. `schedule` subtasks land as `agent-cron` plus a `.task-beacon/jobs.json` row. New `todoView.agentRunner` command template and **Run with Agent** open a terminal per task; only `agent-task` / `agent-cron` can be handed off. Task Beacon still does not run a scheduler.
+
 ## 0.14.20
 
 Lead the listing as a lens for Official / Private / Agent work. The README capture is the sample workspace: Tree, Summary, Table, Chart, Cron Runs, and the bottom Task Beacon panel.
