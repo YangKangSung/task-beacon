@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getAiSettings } from './aiConfig';
-import { summarizeWithAi } from './aiClient';
+import { embedWithAi, summarizeWithAi } from './aiClient';
 import { readWikiTaskDetail, taskFilePath } from './fetchTodo';
 import { effectiveWikiRoot, pickWikiRoot, usingSampleWiki } from './wikiRoot';
 
@@ -39,6 +39,8 @@ export interface ReferenceHit {
   title: string;
   score: number;
   excerpt: string;
+  /** 'lexical' = word overlap; 'embedding' = re-ranked by cosine similarity. */
+  ranker: 'lexical' | 'embedding';
 }
 
 export interface DelegateResult {
@@ -51,6 +53,8 @@ export interface DelegateResult {
 
 const KINDS: SubtaskKind[] = ['research', 'analysis', 'implement', 'schedule'];
 const MAX_REFS = 3;
+/** Lexical shortlist handed to the embedding re-ranker. */
+const SHORTLIST = 12;
 const MAX_SUBTASKS = 6;
 
 // ── Public entry points ────────────────────────────────────────────
@@ -131,7 +135,7 @@ export async function delegateWork(
   body: string,
   sourceFile?: string
 ): Promise<DelegateResult> {
-  const refs = findReferences(root, `${title}\n${body}`, sourceFile);
+  const refs = await findReferencesRanked(root, `${title}\n${body}`, sourceFile);
   const plan = await planSubtasks(title, body, refs);
 
   const stamp = new Date().toISOString().slice(0, 10);
@@ -242,7 +246,49 @@ function guessKind(title: string, body: string): SubtaskKind {
 
 // ── References: finished work in the same wiki ────────────────────
 
-export function findReferences(root: string, text: string, excludeFile?: string): ReferenceHit[] {
+/** Lexical shortlist, then — if `todoView.aiEmbeddingModel` is set — cosine
+ * re-rank over the provider's /embeddings. Any failure keeps the lexical order. */
+export async function findReferencesRanked(
+  root: string,
+  text: string,
+  excludeFile?: string
+): Promise<ReferenceHit[]> {
+  const shortlist = findReferences(root, text, excludeFile, SHORTLIST);
+  const model = embeddingModel();
+  if (!model || shortlist.length < 2) return shortlist.slice(0, MAX_REFS);
+  try {
+    const vectors = await embedWithAi(getAiSettings(), model, [
+      text.slice(0, 4000),
+      ...shortlist.map((r) => `${r.title}\n${r.excerpt}`),
+    ]);
+    const [q, ...docs] = vectors;
+    return shortlist
+      .map((r, i) => ({ ...r, score: cosine(q, docs[i]), ranker: 'embedding' as const }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_REFS);
+  } catch {
+    return shortlist.slice(0, MAX_REFS);
+  }
+}
+
+export function embeddingModel(): string {
+  return vscode.workspace.getConfiguration('todoView').get<string>('aiEmbeddingModel', '').trim();
+}
+
+function cosine(a: number[], b: number[]): number {
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  return na && nb ? dot / Math.sqrt(na * nb) : 0;
+}
+
+export function findReferences(root: string, text: string, excludeFile?: string, limit = MAX_REFS): ReferenceHit[] {
   const dir = existingTasksDir(root);
   if (!dir) return [];
   const query = tokens(text);
@@ -270,9 +316,9 @@ export function findReferences(root: string, text: string, excludeFile?: string)
     for (const t of query) if (bodyTokens.has(t)) overlap++;
     if (overlap === 0) continue;
     const score = overlap / Math.sqrt(query.size * bodyTokens.size);
-    hits.push({ file: rel, title, score, excerpt: excerpt(fm[2]) });
+    hits.push({ file: rel, title, score, excerpt: excerpt(fm[2]), ranker: 'lexical' });
   }
-  return hits.sort((a, b) => b.score - a.score).slice(0, MAX_REFS);
+  return hits.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
 function tokens(text: string): Set<string> {
@@ -348,8 +394,11 @@ function renderEpicFile(
   sourceFile?: string
 ): string {
   const list = taskFiles.map((f, i) => `${i + 1}. [[${f}]] — ${plan.subtasks[i].kind}: ${plan.subtasks[i].title}`).join('\n');
+  const ranker = refs[0]?.ranker === 'embedding' ? 'embedding re-rank' : 'word overlap';
   const refsSection = refs.length
-    ? `\n## References\n\n${refs.map((r) => `- [[${r.file}]] — ${r.title}`).join('\n')}\n`
+    ? `\n## References\n\nFinished tasks in this wiki, matched by ${ranker}.\n\n${refs
+        .map((r) => `- [[${r.file}]] — ${r.title}`)
+        .join('\n')}\n`
     : '';
   const source = sourceFile ? `\nSource brief: [[${sourceFile}]]\n` : '';
   const note = plan.note ? `\n> ${plan.note}\n` : '';

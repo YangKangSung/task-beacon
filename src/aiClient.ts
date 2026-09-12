@@ -78,6 +78,26 @@ export async function summarizeWithAi(
   throw new Error('AI response had no content');
 }
 
+/** OpenAI-compatible /embeddings. Returns one vector per input, in order.
+ * Callers treat any failure as "no embeddings" and keep their lexical order. */
+export async function embedWithAi(settings: AiSettings, model: string, inputs: string[]): Promise<number[][]> {
+  if (!model.trim() || inputs.length === 0) return [];
+  const body = JSON.stringify({ model: model.trim(), input: inputs });
+  const url = `${settings.baseUrl.replace(/\/+$/, '')}/embeddings`;
+  const raw = await postJson(url, body, bearerFor(settings), settings.provider, 20000);
+  const parsed = JSON.parse(raw) as { data?: { index?: number; embedding?: number[] }[] };
+  const rows = parsed.data ?? [];
+  if (rows.length !== inputs.length) {
+    throw new Error(`Embeddings returned ${rows.length} vectors for ${inputs.length} inputs`);
+  }
+  const out: number[][] = new Array(inputs.length);
+  rows.forEach((r, i) => {
+    if (!Array.isArray(r.embedding)) throw new Error('Embeddings reply missing vectors');
+    out[typeof r.index === 'number' ? r.index : i] = r.embedding;
+  });
+  return out;
+}
+
 export type ModelHealthStatus = 'healthy' | 'unhealthy';
 
 /** Cross-references LiteLLM's /model/info (alias -> backend model id) with
@@ -166,7 +186,13 @@ function getJson(urlStr: string, apiKey: string): Promise<string> {
   });
 }
 
-function postJson(urlStr: string, body: string, apiKey: string, provider?: string): Promise<string> {
+function postJson(
+  urlStr: string,
+  body: string,
+  apiKey: string,
+  provider?: string,
+  timeoutMs = 90000
+): Promise<string> {
   return new Promise((resolve, reject) => {
     let url: URL;
     try {
@@ -191,7 +217,7 @@ function postJson(urlStr: string, body: string, apiKey: string, provider?: strin
         },
         // Reasoning models can take 60-90s on longer inputs (thinking pass
         // before content) — 30s was cutting those off mid-request.
-        timeout: 90000,
+        timeout: timeoutMs,
       },
       (res) => {
         let data = '';
