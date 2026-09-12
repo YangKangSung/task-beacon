@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.15.1
+
+Settings → Agent tab holds the runner command and an optional embedding model. References for a delegated brief are still shortlisted by word overlap; with `todoView.aiEmbeddingModel` set they are re-ranked through the provider's `/embeddings`, and the epic says which ranker was used. Delegated epics now follow their subtasks on every refresh — `done`, `blocked`, or `in-progress` — and hand-written epics are never touched.
+
 ## 0.15.0
 
 Delegate to Agent. A brief becomes `Projects/<slug>.md` plus `Tasks/<slug>-NN-<kind>.md` subtasks (research / analysis / implement / schedule) when AI is configured, or one task when it is not. Finished tasks in the same wiki are attached as references so similar work keeps the shape that worked. `schedule` subtasks land as `agent-cron` plus a `.task-beacon/jobs.json` row. New `todoView.agentRunner` command template and **Run with Agent** open a terminal per task; only `agent-task` / `agent-cron` can be handed off. Task Beacon still does not run a scheduler.
