@@ -2,7 +2,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { TodoTreeItem, TodoTreeDataProvider } from './todoProvider';
 import { resolveCronScriptPath, setCronPaused, taskFilePath, triggerCronRun } from './fetchTodo';
-import { isHermesJob } from './cronAdapters';
+import { isHermesJob, loadCronChannel } from './cronAdapters';
+import { formatLate, healthBySource, healthGlyph } from './cronHealth';
+import { healthHeadline } from './todoProvider';
 import { promptSelectAiModel } from './aiConfig';
 import { jiraBrowseUrl } from './jiraConfig';
 import { openSettingsPanel } from './settingsView';
@@ -240,6 +242,10 @@ export function registerCommands(context: vscode.ExtensionContext, provider: Tod
       await afterDelegate(provider, result);
     }),
 
+    vscode.commands.registerCommand('todoView.cronHealth', (source?: unknown) =>
+      showCronHealth(typeof source === 'string' ? source : undefined)
+    ),
+
     vscode.commands.registerCommand('todoView.runWithAgent', async (item?: TodoNode | TodoTreeItem) => {
       const file = toNode(item)?.wikiTask?.file;
       if (!file) return;
@@ -272,6 +278,69 @@ async function afterDelegate(provider: TodoTreeDataProvider, result: DelegateRes
   const filePath = taskFilePath(result.epicFile);
   if (fs.existsSync(filePath)) {
     const doc = await vscode.workspace.openTextDocument(filePath);
+    await vscode.window.showTextDocument(doc);
+  }
+}
+
+interface HealthPick extends vscode.QuickPickItem {
+  source?: string;
+  job?: CronJob;
+  hermesStatus?: boolean;
+}
+
+/** Quick pick of cron health: sources first, then the jobs of one source. */
+async function showCronHealth(source?: string): Promise<void> {
+  const jobs = loadCronChannel().jobs;
+  if (jobs.length === 0) {
+    vscode.window.showInformationMessage('No live cron jobs found, so there is nothing to health-check.');
+    return;
+  }
+
+  if (!source) {
+    const items: HealthPick[] = healthBySource(jobs).map(({ source: id, label, summary }) => ({
+      label: `${healthGlyph(summary.state)}  ${label}`,
+      description: healthHeadline(summary),
+      detail: summary.worst?.health ? `${summary.worst.name}: ${summary.worst.health.reason}` : undefined,
+      source: id,
+    }));
+    const pick = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Cron health by source — ok means the last due fire was recorded; cloud means the vendor ticks it',
+    });
+    if (pick?.source) await showCronHealth(pick.source);
+    return;
+  }
+
+  const mine = jobs.filter((j) => (j.source ?? 'unknown') === source);
+  const items: HealthPick[] = [];
+  if (source === 'hermes') {
+    items.push({
+      label: '$(terminal) Run `hermes cron status`',
+      description: 'checks the gateway scheduler (CLI cold start ~10s)',
+      hermesStatus: true,
+    });
+  }
+  for (const job of mine) {
+    const h = job.health;
+    items.push({
+      label: `${healthGlyph(h?.state ?? 'unknown')}  ${job.name}`,
+      description: [h?.state ?? 'unknown', h?.lateMs ? `${formatLate(h.lateMs)} late` : '', job.schedule].filter(Boolean).join(' · '),
+      detail: h?.reason,
+      job,
+    });
+  }
+  const pick = await vscode.window.showQuickPick(items, {
+    placeHolder: `${mine[0]?.sourceLabel ?? source} — pick a job to open its file`,
+  });
+  if (!pick) return;
+  if (pick.hermesStatus) {
+    const term = vscode.window.createTerminal({ name: 'Hermes cron status' });
+    term.show();
+    term.sendText('hermes cron status');
+    return;
+  }
+  const file = pick.job?.openPath;
+  if (file && fs.existsSync(file)) {
+    const doc = await vscode.workspace.openTextDocument(file);
     await vscode.window.showTextDocument(doc);
   }
 }

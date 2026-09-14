@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.16.0
+
+Cron health. Each live job is judged from its own file: ♥ when the last due fire (`next_run`, or `schedule` after `last_run`) was honoured within a 10-minute grace, 💔 when the due time passed with no run recorded, ♡ when there is not enough data, ☁ for vendor-ticked jobs such as GitHub Actions. Shown on the Agent root, the Cron subhead, a per-source **Health** row, overdue jobs, the status bar, and a bottom-panel tile. **Task Beacon: Cron Health…** lists sources and jobs; the Hermes entry can run `hermes cron status` in a terminal on request. A small 5-field cron parser (names, ranges, steps, Vixie day-or semantics) and interval parser (`every 2h`, `30m`, `daily`) back the computation. Claude Desktop local tasks (`~/.claude/scheduled-tasks/*/SKILL.md`) are now read as a source. Task Beacon still does not inspect processes or the OS scheduler.
+
 ## 0.15.1
 
 Settings → Agent tab holds the runner command and an optional embedding model. References for a delegated brief are still shortlisted by word overlap; with `todoView.aiEmbeddingModel` set they are re-ranked through the provider's `/embeddings`, and the epic says which ranker was used. Delegated epics now follow their subtasks on every refresh — `done`, `blocked`, or `in-progress` — and hand-written epics are never touched.

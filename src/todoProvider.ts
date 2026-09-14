@@ -4,6 +4,7 @@ import { CronJob, FilterMode, JiraIssue, ShowTodoFull, TodoNode, WikiTask } from
 import { configuredWikiRoot, inspectLabel, inspectWikiRoot, isUsableWiki, usingSampleWiki } from './wikiRoot';
 import { jiraBaseUrl } from './jiraConfig';
 import { filterByCategory } from './owners';
+import { formatLate, healthBySource, healthGlyph, HealthSummary, summarizeHealth } from './cronHealth';
 
 const ROOT_OFFICIAL = 'root-official';
 const ROOT_PRIVATE = 'root-private';
@@ -40,6 +41,7 @@ export class TodoTreeItem extends vscode.TreeItem {
       this.command = {
         command: node.commandId,
         title: node.label,
+        arguments: node.commandArgs,
       };
     }
   }
@@ -234,18 +236,24 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
     }
 
     if (this.filter === 'all' || this.filter === 'agent') {
+      const health = data.cron.ok ? summarizeHealth(data.cron.jobs) : undefined;
       const parts: string[] = [];
+      if (health && cronTotal > 0) parts.push(healthGlyph(health.state));
       if (agentTaskTotal > 0) parts.push(`tasks ${agentTaskTotal}`);
       if (cronTotal > 0) parts.push(`cron ${cronActive}/${cronTotal}`);
+      if (health && health.overdue > 0) parts.push(`${health.overdue} overdue`);
       if (cronFail > 0) parts.push(`${cronFail} failing`);
       if (parts.length === 0) parts.push('empty');
+      const broken = Boolean(health && health.state === 'broken');
       roots.push({
         kind: ROOT_AGENT,
         label: 'Agent',
         description: parts.join('  ·  '),
-        tooltip: `Agent workload\n${agentTaskTotal} tasks · ${cronTotal} cron jobs${cronFail ? ` · ${cronFail} failing` : ''}`,
-        iconId: cronFail > 0 ? 'flame' : 'robot',
-        iconColor: cronFail > 0 ? 'charts.red' : 'charts.orange',
+        tooltip:
+          `Agent workload\n${agentTaskTotal} tasks · ${cronTotal} cron jobs${cronFail ? ` · ${cronFail} failing` : ''}` +
+          (health && cronTotal > 0 ? `\n\nCron health: ${healthHeadline(health)}` : ''),
+        iconId: broken || cronFail > 0 ? 'flame' : 'robot',
+        iconColor: broken || cronFail > 0 ? 'charts.red' : 'charts.orange',
       });
     }
 
@@ -462,11 +470,27 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
       });
     } else {
       const jobs = cron.jobs.filter((j) => this.matchesSearch(`${j.name} ${j.schedule}`));
-      const failing = jobs.filter((j) => isFail(j.last_status));
-      const active = jobs.filter((j) => j.state === 'active' && !isFail(j.last_status));
+      const overdue = jobs.filter((j) => j.health?.state === 'overdue');
+      const failing = jobs.filter((j) => isFail(j.last_status) && j.health?.state !== 'overdue');
+      const active = jobs.filter((j) => j.state === 'active' && !isFail(j.last_status) && j.health?.state !== 'overdue');
       const idle = jobs.filter((j) => j.state !== 'active' && !isFail(j.last_status));
       const cronChildren: TodoNode[] = [];
+      const health = summarizeHealth(cron.jobs);
 
+      if (cron.jobs.length > 0) {
+        cronChildren.push(healthNode(cron.jobs, health));
+      }
+      if (overdue.length > 0) {
+        cronChildren.push({
+          kind: 'subhead',
+          label: 'Overdue',
+          description: `${overdue.length}`,
+          tooltip: 'Due time passed and no run was recorded. The scheduler that owns these may be down.',
+          iconId: 'heart',
+          iconColor: 'charts.red',
+          children: overdue.map((job) => cronNode(job, 'failing')),
+        });
+      }
       if (failing.length > 0) {
         cronChildren.push({
           kind: 'subhead',
@@ -501,9 +525,10 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
       nodes.push({
         kind: 'subhead',
         label: 'Cron',
-        description: cronChildren.length > 0 ? `${jobs.length}` : 'empty',
-        iconId: 'clock',
-        iconColor: 'charts.orange',
+        description: cronChildren.length > 0 ? `${healthGlyph(health.state)}  ${jobs.length}` : 'empty',
+        tooltip: cron.jobs.length > 0 ? `Cron health: ${healthHeadline(health)}` : undefined,
+        iconId: health.state === 'broken' ? 'heart' : health.state === 'ok' ? 'heart-filled' : 'clock',
+        iconColor: health.state === 'broken' ? 'charts.red' : health.state === 'ok' ? 'charts.green' : 'charts.orange',
         children:
           cronChildren.length > 0
             ? cronChildren
@@ -697,17 +722,67 @@ function cronContextValue(job: CronJob): string {
   return job.state === 'paused' ? `cron-${src}-paused` : `cron-${src}-active`;
 }
 
+/** Per-source health rows under Cron. Click opens the health command for that source. */
+function healthNode(jobs: CronJob[], health: HealthSummary): TodoNode {
+  const rows = healthBySource(jobs).map<TodoNode>(({ source, label, summary }) => {
+    const bits: string[] = [];
+    if (summary.ok) bits.push(`${summary.ok} on time`);
+    if (summary.overdue) bits.push(`${summary.overdue} overdue`);
+    if (summary.unknown) bits.push(`${summary.unknown} unknown`);
+    if (summary.cloud) bits.push(`${summary.cloud} cloud`);
+    if (summary.paused) bits.push(`${summary.paused} paused`);
+    const worst = summary.worst?.health;
+    return {
+      kind: 'action',
+      label: `${healthGlyph(summary.state)}  ${label}`,
+      description: bits.join(' · '),
+      tooltip:
+        `${label}: ${healthHeadline(summary)}` +
+        (worst ? `\n\n${summary.worst!.name}: ${worst.reason}` : '') +
+        (source === 'hermes' && summary.state === 'broken' ? '\n\nClick to run `hermes cron status` in a terminal.' : '\n\nClick for details.'),
+      iconId: summary.state === 'broken' ? 'heart' : summary.state === 'ok' ? 'heart-filled' : 'circle-outline',
+      iconColor: summary.state === 'broken' ? 'charts.red' : summary.state === 'ok' ? 'charts.green' : 'disabledForeground',
+      commandId: 'todoView.cronHealth',
+      commandArgs: [source],
+    };
+  });
+  return {
+    kind: 'subhead',
+    label: 'Health',
+    description: healthHeadline(health),
+    tooltip:
+      'ok = the last due fire was recorded on time · overdue = due time passed with no run · unknown = not enough data · cloud = ticked by the vendor, not checked here.',
+    iconId: health.state === 'broken' ? 'heart' : health.state === 'ok' ? 'heart-filled' : 'pulse',
+    iconColor: health.state === 'broken' ? 'charts.red' : health.state === 'ok' ? 'charts.green' : 'disabledForeground',
+    children: rows,
+  };
+}
+
+export function healthHeadline(h: HealthSummary): string {
+  if (h.state === 'broken') {
+    const late = h.worst?.health?.lateMs ? ` · worst ${formatLate(h.worst.health.lateMs)} late` : '';
+    return `${healthGlyph('broken')} ${h.overdue} overdue${late}`;
+  }
+  if (h.state === 'ok') return `${healthGlyph('ok')} ${h.ok} on time${h.unknown ? ` · ${h.unknown} unknown` : ''}${h.cloud ? ` · ${h.cloud} cloud` : ''}`;
+  return `${healthGlyph('unknown')} nothing to judge${h.cloud ? ` · ${h.cloud} cloud` : ''}${h.paused ? ` · ${h.paused} paused` : ''}`;
+}
+
 function cronNode(job: CronJob, group: 'active' | 'idle' | 'failing'): TodoNode {
   const status = job.last_status || 'never';
   const desc = [job.sourceLabel, job.schedule, statusSymbol(status)].filter(Boolean);
-  if (job.last_run) {
+  if (job.health?.state === 'overdue' && job.health.lateMs) {
+    desc.push(`${healthGlyph('overdue')} ${formatLate(job.health.lateMs)} late`);
+  } else if (job.last_run) {
     const age = daysSinceIso(job.last_run);
     if (age !== null) desc.push(`${age}d ago`);
   }
 
   let iconId: string;
   let iconColor: string;
-  if (group === 'failing') {
+  if (job.health?.state === 'overdue') {
+    iconId = 'heart';
+    iconColor = 'charts.red';
+  } else if (group === 'failing') {
     iconId = 'flame';
     iconColor = 'charts.red';
   } else if (group === 'idle') {
@@ -853,6 +928,9 @@ function buildCronTooltip(job: CronJob): vscode.MarkdownString {
   md.appendMarkdown(`- Schedule: \`${job.schedule}\`\n`);
   md.appendMarkdown(`- Last run: ${job.last_run ?? '_n/a_'} (\`${job.last_status}\`)\n`);
   md.appendMarkdown(`- Next run: ${job.next_run ?? '_n/a_'}\n`);
+  if (job.health) {
+    md.appendMarkdown(`- Health: ${healthGlyph(job.health.state)} \`${job.health.state}\` — ${escapeMd(job.health.reason)}\n`);
+  }
   return md;
 }
 

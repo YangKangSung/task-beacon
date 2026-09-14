@@ -8,6 +8,7 @@ import { summarizeWithAi } from './aiClient';
 import { ModelStats } from './grafanaClient';
 import { JiraIssue, WikiTask, CronJob, ShowTodoFull, FilterMode } from './types';
 import { Owner, ownerOfWikiTask, ownerStats, wikiForOwner } from './owners';
+import { formatLate, healthGlyph, summarizeHealth } from './cronHealth';
 
 interface SeriesDef {
   label: string;
@@ -101,6 +102,9 @@ export class TodoPanelViewProvider implements vscode.WebviewViewProvider {
         vscode.commands.executeCommand('todoView.filterAll');
         vscode.commands.executeCommand('todoView.focus');
         this.render();
+        return;
+      case 'cronHealth':
+        vscode.commands.executeCommand('todoView.cronHealth');
         return;
       case 'selectAiModel':
         vscode.commands.executeCommand('todoView.selectAiModel');
@@ -307,6 +311,32 @@ function renderKpiTiles(data: ShowTodoFull, history: SnapshotRecord[]): string {
     'var(--vscode-charts-orange, #d18616)'
   );
 
+  const health = data.cron.ok && data.cron.jobs.length > 0 ? summarizeHealth(data.cron.jobs) : undefined;
+  const healthTile = health
+    ? `
+      <div class="kpi kpi-health ${health.state}" data-action="cronHealth" title="ok = last due fire recorded on time · overdue = due passed, no run · cloud = vendor ticks it, not checked here">
+        <div class="kpi-head">
+          <span class="kpi-label">CRON HEALTH</span>
+          <span class="kpi-tag">${health.state === 'broken' ? 'scheduler may be down' : health.state === 'ok' ? 'ticking' : 'not enough data'}</span>
+        </div>
+        <div class="kpi-value">${healthGlyph(health.state)}</div>
+        <div class="kpi-sub">${[
+          health.ok ? `${health.ok} on time` : '',
+          health.overdue ? `${health.overdue} overdue` : '',
+          health.unknown ? `${health.unknown} unknown` : '',
+          health.cloud ? `${health.cloud} cloud` : '',
+          health.paused ? `${health.paused} paused` : '',
+        ]
+          .filter(Boolean)
+          .join(' · ')}</div>
+        ${
+          health.worst?.health
+            ? `<div class="kpi-alert">⚠ ${esc(health.worst.name)} · ${esc(formatLate(health.worst.health.lateMs ?? 0))} late</div>`
+            : `<div class="kpi-sub-thin">${health.state === 'ok' ? 'every due fire was recorded' : 'no due fire to judge yet'}</div>`
+        }
+      </div>`
+    : '';
+
   return `
     <div class="kpi-grid">
       <div class="kpi" data-action="openOfficialFilter">
@@ -338,7 +368,7 @@ function renderKpiTiles(data: ShowTodoFull, history: SnapshotRecord[]): string {
         <div class="kpi-sub">${agentBits.join(' · ')}</div>
         ${stats.agent.failing ? `<div class="kpi-alert">⚠ ${stats.agent.failing} failing</div>` : `<div class="kpi-sub-thin">no failures</div>`}
         <div class="kpi-spark">${agentSpark}</div>
-      </div>
+      </div>${healthTile}
     </div>
   `;
 }
@@ -1136,6 +1166,10 @@ const STYLES = `
   .kpi-alert { font-size: 0.78em; color: var(--vscode-errorForeground); font-weight: 600; }
   .kpi-spark { margin-top: 4px; height: 24px; }
   .kpi-spark-sub { height: 18px; opacity: 0.7; }
+  .kpi-health.ok .kpi-value { color: var(--vscode-charts-green, #89d185); }
+  .kpi-health.broken .kpi-value { color: var(--vscode-errorForeground, #f14c4c); }
+  .kpi-health.broken { border-color: var(--vscode-errorForeground, #f14c4c); }
+  .kpi-health.unknown .kpi-value { color: var(--vscode-descriptionForeground); }
 
   /* Filter bar */
   .filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
