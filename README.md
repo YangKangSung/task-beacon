@@ -36,7 +36,7 @@ That is the product: one sidebar, three owners, the files you already have. You 
 - **Filter, then open.** Cycle All → Official → Private → Agent. Click a row to open the Jira ticket, the markdown task, or the cron script.
 - **Agents use the same files.** Any agent writes `Tasks/*.md` (`category: agent-task` or `agent-cron`) and optionally `.task-beacon/jobs.json`. See [AGENTS.md](AGENTS.md).
 
-Live cron is merged when the files exist: Hermes, Claude Code `scheduled_tasks.json`, GitHub Actions `on.schedule`, OpenCode scheduler files, and `.task-beacon/jobs.json`. Cursor / Codex / Copilot cloud automations are not local files — keep those as wiki `agent-cron` (and the jobs file if you want a schedule line). Pause / resume / run now are Hermes-only.
+Live cron is merged when the files exist: Hermes, Claude Code `scheduled_tasks.json`, Claude Desktop `scheduled-tasks/*/SKILL.md`, GitHub Actions `on.schedule`, OpenCode scheduler files, and `.task-beacon/jobs.json`. Each job gets a ♥ / 💔 from its own file: did the last due fire happen? Cursor / Codex / Copilot cloud automations are not local files — keep those as wiki `agent-cron` (and the jobs file if you want a schedule line). Pause / resume / run now are Hermes-only.
 
 The shape is still Jira’s: epics group work, tasks are the items. Inspired by GitLens and Todo Tree, but the unit here is *owned work*, not comments in source.
 
@@ -124,6 +124,17 @@ claude -p "Do the task in {file}. Set status: done when finished."
 
 Only `agent-task` / `agent-cron` rows can be handed off. Official and Private never run unattended. Nothing runs if the runner is empty — the files are still written, and the board shows them.
 
+### Cron health — is anything still ticking?
+
+Every scheduler dies the same way from the outside: a job's due time passes and no run gets recorded. Hermes, Claude Desktop, and `.task-beacon/jobs.json` all look "active" in their files long after the process that ticks them is gone. Task Beacon judges each live job from its own file and shows a heart:
+
+- ♥ **on time** — the last due fire (`next_run`, or `schedule` computed after `last_run`) was honoured, or is within a 10-minute grace.
+- 💔 **overdue** — the due time passed and no run was recorded since. The scheduler that owns it may be down.
+- ♡ **unknown** — no `next_run` and no `last_run`, or a schedule that is not a cron expression / simple interval.
+- ☁ **cloud** — GitHub Actions and other vendor-ticked jobs. Not checked locally, never shown green.
+
+The heart sits on the Agent root, on the Cron subhead, in a **Health** row per source (Hermes, Task Beacon, Claude, OpenCode, GitHub Actions), on overdue jobs themselves, in the status bar, and as a bottom-panel tile. **Task Beacon: Cron Health…** lists the same by source; the Hermes entry can run `hermes cron status` in a terminal (that CLI cold-starts in ~10 s, so it is never run automatically). Task Beacon does not look at process lists or the OS scheduler — "on time" means the file says it fired, nothing more.
+
 The epic follows its subtasks on every refresh: all `done` → `done`; the rest finished but one `blocked` → `blocked`; otherwise `in-progress`. Only epics Task Beacon wrote (`type: Epic` with `delegated:`) are updated; hand-written epics are never touched. Both fields live in **Settings → Agent**.
 
 ---
@@ -180,6 +191,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | **Task Beacon: Search / Filter Tree...** | Filter the tree |
 | **Task Beacon: Select AI Model...** | Pick a model when AI is configured |
 | **Task Beacon: Delegate to Agent...** | Split a brief into agent task files, attach finished references, hand off to your runner |
+| **Task Beacon: Cron Health...** | ♥ / 💔 per scheduler source; open the job file or run `hermes cron status` |
 | **Task Beacon: Log in to xAI via Hermes** | Device login (`hermes auth add xai-oauth`) |
 
 ---
@@ -193,6 +205,7 @@ Live cron is merged from:
 - Hermes `jobs.json` (profile or `%LOCALAPPDATA%\hermes\cron\`)
 - `<wiki>/.task-beacon/jobs.json` (any agent)
 - Claude Code `.claude/scheduled_tasks.json` (wiki/workspace or `~/.claude`)
+- Claude Desktop `~/.claude/scheduled-tasks/<name>/SKILL.md` (frontmatter, best-effort field names)
 - GitHub Actions `.github/workflows/*.yml` with `schedule`
 - OpenCode `~/.config/opencode/scheduler/**/jobs/*.json`
 

@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { CronChannel, CronJob, HermesJobsFile } from './types';
+import { annotateHealth } from './cronHealth';
 import { effectiveWikiRoot } from './wikiRoot';
 
 const MAX_JOBS = 200;
@@ -33,8 +34,11 @@ export function loadCronChannel(wikiRoot?: string): CronChannel {
   run('Hermes', loadHermesJobs);
   run('Task Beacon', () => loadTaskBeaconJobs(roots));
   run('Claude Code', () => loadClaudeJobs(roots));
+  run('Claude Desktop', loadClaudeDesktopTasks);
   run('GitHub Actions', () => loadGithubActionJobs(roots));
   run('OpenCode', loadOpenCodeJobs);
+
+  annotateHealth(jobs);
 
   return {
     ok: true,
@@ -198,6 +202,61 @@ function loadClaudeJobs(roots: string[]): CronJob[] {
     }
   }
   return jobs;
+}
+
+/**
+ * Claude Code Desktop stores each local scheduled task as
+ * `~/.claude/scheduled-tasks/<name>/SKILL.md` (YAML frontmatter + prompt body)
+ * and polls it once a minute while the app is open. Field names are read
+ * defensively — the on-disk schema is not a published contract.
+ */
+function loadClaudeDesktopTasks(): CronJob[] {
+  const dir = path.join(os.homedir(), '.claude', 'scheduled-tasks');
+  const jobs: CronJob[] = [];
+  for (const file of listFiles(dir, 2, '.md')) {
+    if (path.basename(file).toLowerCase() !== 'skill.md') continue;
+    let content = '';
+    try {
+      content = fs.readFileSync(file, 'utf-8');
+    } catch {
+      continue;
+    }
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/);
+    if (!match) continue;
+    const fm = parseFlatYaml(match[1]);
+    const folder = path.basename(path.dirname(file));
+    const name = fm.name || fm.title || folder;
+    const schedule = fm.schedule || fm.cron || fm.interval || '';
+    const paused = fm.enabled === 'false' || fm.paused === 'true' || fm.state === 'paused' || fm.disabled === 'true';
+    jobs.push(
+      cronJob({
+        source: 'claude-desktop',
+        sourceLabel: 'Claude Desktop',
+        nativeId: folder,
+        name: clipName(name),
+        schedule,
+        state: paused ? 'paused' : 'active',
+        last_status: fm.last_status || fm.lastStatus || '',
+        last_run: fm.last_run || fm.lastRun || fm.last_run_at || fm.lastRunAt || null,
+        next_run: fm.next_run || fm.nextRun || fm.next_run_at || fm.nextRunAt || null,
+        openPath: file,
+        preview: clipText(match[2]),
+      })
+    );
+  }
+  return jobs;
+}
+
+function parseFlatYaml(block: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of block.split(/\r?\n/)) {
+    const m = line.match(/^(\w[\w-]*):\s*(.*)$/);
+    if (!m) continue;
+    const raw = m[2].trim();
+    if (!raw || raw.startsWith('-') || raw.startsWith('[')) continue;
+    out[m[1]] = raw.replace(/^["']|["']$/g, '');
+  }
+  return out;
 }
 
 function loadGithubActionJobs(roots: string[]): CronJob[] {

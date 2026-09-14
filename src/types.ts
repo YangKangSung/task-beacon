@@ -54,6 +54,8 @@ export interface CronJob {
   nativeId?: string;
   openPath?: string;
   preview?: string;
+  /** Computed by cronHealth.annotateHealth — did the last due fire actually happen? */
+  health?: import('./cronHealth').CronHealth;
 }
 
 export interface CronChannel {
@@ -106,6 +108,7 @@ export interface TodoNode {
   children?: TodoNode[];
   /** Tree action row (setup / recovery). Runs this command on click. */
   commandId?: string;
+  commandArgs?: unknown[];
 }
 
 /** Raw shape of ~/.hermes/cron/jobs.json — used only to resolve a job's script path. */

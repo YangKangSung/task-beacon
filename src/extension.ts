@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { TodoTreeDataProvider } from './todoProvider';
+import { healthHeadline, TodoTreeDataProvider } from './todoProvider';
+import { healthGlyph, summarizeHealth } from './cronHealth';
 import { TodoTableViewProvider } from './tableView';
 import { TodoSummaryViewProvider } from './summaryView';
 import { TodoChartViewProvider } from './chartView';
@@ -204,7 +205,9 @@ function updateStatusBar(data: ShowTodoFull | undefined): void {
     !stats.agent.wikiOk || !stats.agent.cronOk ? 'Agent' : '',
   ].filter((c): c is string => Boolean(c));
 
-  const alarm = stats.official.overdue + stats.agent.failing;
+  const cronHealth = data.cron.ok && data.cron.jobs.length > 0 ? summarizeHealth(data.cron.jobs) : undefined;
+  const heart = cronHealth ? ` ${healthGlyph(cronHealth.state)}` : '';
+  const alarm = stats.official.overdue + stats.agent.failing + (cronHealth?.overdue ?? 0);
   if (usingSampleWiki()) {
     statusBarItem.text = `$(sparkle) Beacon: samples · ${stats.official.open + stats.private.open + stats.agent.open}`;
     statusBarItem.backgroundColor = undefined;
@@ -212,21 +215,25 @@ function updateStatusBar(data: ShowTodoFull | undefined): void {
     return;
   }
   if (failedChannels.length > 0) {
-    statusBarItem.text = `$(warning) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open} · ${failedChannels.length} down`;
+    statusBarItem.text = `$(warning) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open} · ${failedChannels.length} down${heart}`;
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
   } else if (alarm > 0) {
-    statusBarItem.text = `$(flame) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open} · ⚠${alarm}`;
+    statusBarItem.text = `$(flame) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open} · ⚠${alarm}${heart}`;
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
   } else {
-    statusBarItem.text = `$(sparkle) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open}`;
+    statusBarItem.text = `$(sparkle) Beacon: ${stats.official.open} · ${stats.private.open} · ${stats.agent.open}${heart}`;
     statusBarItem.backgroundColor = undefined;
   }
+  const cronLine = cronHealth
+    ? `- Cron health: ${healthHeadline(cronHealth)}${cronHealth.worst?.health ? ` — ${cronHealth.worst.name}: ${cronHealth.worst.health.reason}` : ''}\n`
+    : '';
   statusBarItem.tooltip = new vscode.MarkdownString(
     `**Task Beacon**\n\n` +
       `- Official: **${stats.official.open}**${stats.official.overdue ? ` (${stats.official.overdue} overdue)` : ''}${stats.official.jiraUsed && !stats.official.jiraOk ? ` — ⚠ Jira ${data.jira.error ?? 'failed'}` : ''}\n` +
       `- Private: **${stats.private.open}**${!stats.private.wikiOk ? ` — ⚠ ${data.wiki.error ?? 'fetch failed'}` : ''}\n` +
-      `- Agent: **${stats.agent.open}**${stats.agent.failing ? ` (${stats.agent.failing} failing)` : ''}${!stats.agent.cronOk ? ` — ⚠ cron ${data.cron.error ?? 'failed'}` : ''}\n\n` +
-      `_Click to open the sidebar_`
+      `- Agent: **${stats.agent.open}**${stats.agent.failing ? ` (${stats.agent.failing} failing)` : ''}${!stats.agent.cronOk ? ` — ⚠ cron ${data.cron.error ?? 'failed'}` : ''}\n` +
+      cronLine +
+      `\n_Click to open the sidebar_`
   );
 }
 

@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Official, Private, and Agent tasks in one VS Code sidebar. A wiki folder is enough. Jira, Hermes, and Grafana are optional.",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -279,6 +279,12 @@
         "icon": "$(run)"
       },
       {
+        "command": "todoView.cronHealth",
+        "title": "Cron Health...",
+        "icon": "$(heart)",
+        "category": "Task Beacon"
+      },
+      {
         "command": "todoView.checkForUpdates",
         "title": "Check for Updates",
         "category": "Task Beacon"
@@ -392,6 +398,11 @@
           "command": "todoView.delegate",
           "when": "view == todoView",
           "group": "2_agent@1"
+        },
+        {
+          "command": "todoView.cronHealth",
+          "when": "view == todoView",
+          "group": "2_agent@2"
         },
         {
           "command": "todoView.filterAll",

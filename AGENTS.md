@@ -63,7 +63,9 @@ If you are given one of these files: read the references, do the **Goal**, write
 }
 ```
 
-Optional fields: `prompt`, `command`, `open` (path to the script or workflow to open).
+Optional fields: `prompt`, `command`, `open` (path to the script or workflow to open), `last_run` and `next_run` (ISO timestamps).
+
+Update `last_run` (and `next_run` if you know it) after every run. Task Beacon computes the next fire from `schedule` + `last_run` and shows ♥ when it was honoured, 💔 when the due time passed with no run recorded. Without `last_run` the row shows ♡ unknown.
 
 ## What Task Beacon reads live
 
@@ -72,6 +74,7 @@ Optional fields: `prompt`, `command`, `open` (path to the script or workflow to 
 | Wiki | `Tasks/*.md` with `agent-task` / `agent-cron` | Status is edited in the markdown |
 | Task Beacon file | `<wiki>/.task-beacon/jobs.json` | No — edit the file |
 | Claude Code | `<wiki>/.claude/scheduled_tasks.json` or `~/.claude/scheduled_tasks.json` | No — edit the file |
+| Claude Desktop | `~/.claude/scheduled-tasks/<name>/SKILL.md` (frontmatter read best-effort) | No — edit the file |
 | Hermes | Hermes `jobs.json` on this machine | Yes |
 | GitHub Actions | `<wiki or workspace>/.github/workflows/*.yml` with `on.schedule` | No — open the workflow |
 | OpenCode | `~/.config/opencode/scheduler/**/jobs/*.json` | No — edit the file |
