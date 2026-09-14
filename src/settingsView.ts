@@ -29,6 +29,8 @@ interface FormState {
   updateCheckEnabled: boolean;
   updateCheckIntervalHours: number;
   ghToken: string;
+  agentRunner: string;
+  aiEmbeddingModel: string;
 }
 
 async function readState(): Promise<FormState> {
@@ -53,6 +55,8 @@ async function readState(): Promise<FormState> {
     updateCheckEnabled: cfg.get<boolean>('updateCheckEnabled', true),
     updateCheckIntervalHours: cfg.get<number>('updateCheckIntervalHours', 24),
     ghToken: (await secrets.get(GH_TOKEN_SECRET_KEY)) ?? '',
+    agentRunner: cfg.get<string>('agentRunner', ''),
+    aiEmbeddingModel: cfg.get<string>('aiEmbeddingModel', ''),
   };
 }
 
@@ -87,6 +91,9 @@ async function writeState(next: FormState): Promise<void> {
   if (next.ghToken) {
     await secrets.store(GH_TOKEN_SECRET_KEY, next.ghToken);
   }
+
+  await cfg.update('agentRunner', next.agentRunner.trim(), target);
+  await cfg.update('aiEmbeddingModel', next.aiEmbeddingModel.trim(), target);
 }
 
 export async function openSettingsPanel(): Promise<void> {
@@ -150,8 +157,20 @@ const SECTIONS = [
   { id: 'jira', label: 'Jira' },
   { id: 'ai', label: 'AI Provider' },
   { id: 'paths', label: 'Paths' },
+  { id: 'agent', label: 'Agent' },
   { id: 'update', label: 'Update Check' },
 ] as const;
+
+/** Shared markup for the Agent section — same fields in the editor panel and the sidebar. */
+function agentFieldsHtml(): string {
+  return `
+      <label for="agentRunner">Agent runner command</label>
+      <input id="agentRunner" type="text" placeholder='hermes chat -q "Read {file} and do it. Set status: done when finished."' />
+      <div class="hint">Used by Run with Agent and Delegate → Run now. Opens a terminal per task. Placeholders: {file} {title} {root}. Empty = write task files only, never run.</div>
+      <label for="aiEmbeddingModel">Embedding model (optional)</label>
+      <input id="aiEmbeddingModel" type="text" placeholder="e.g. text-embedding-3-small, nomic-embed-text" />
+      <div class="hint">Re-ranks finished-task references with the provider's /embeddings endpoint. Empty = word overlap only. Falls back to word overlap if the call fails.</div>`;
+}
 
 function renderHtml(webview: vscode.Webview): string {
   const nonce = getNonce();
@@ -282,6 +301,9 @@ function renderHtml(webview: vscode.Webview): string {
         <input id="autoRefreshSec" type="number" min="0" />
       </div>
 
+      <div class="pane" data-pane="agent">${agentFieldsHtml()}
+      </div>
+
       <div class="pane" data-pane="update">
         <div class="row">
           <input id="updateCheckEnabled" type="checkbox" />
@@ -323,6 +345,7 @@ const FIELD_IDS = [
   'aiProvider', 'aiBaseUrl', 'aiApiKey', 'aiDefaultModel',
   'llmWikiRoot', 'pythonPath', 'grafanaUrl', 'autoRefreshSec',
   'updateCheckEnabled', 'updateCheckIntervalHours', 'ghToken',
+  'agentRunner', 'aiEmbeddingModel',
 ] as const;
 
 /** Shared client-side state machine (collect/apply/dirty-tracking/save) used
@@ -572,6 +595,12 @@ function renderSidebarHtml(webview: vscode.Webview): string {
       <input id="pythonPath" type="text" />
       <label for="autoRefreshSec">Auto-refresh interval (sec, 0 = disabled)</label>
       <input id="autoRefreshSec" type="number" min="0" />
+    </div>
+  </details>
+
+  <details>
+    <summary>Agent</summary>
+    <div class="section-body">${agentFieldsHtml()}
     </div>
   </details>
 

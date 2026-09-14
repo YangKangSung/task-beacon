@@ -111,7 +111,7 @@ Longer work you do not want to babysit: **Task Beacon: Delegate to Agent…** (o
 What happens, in files you can read:
 
 1. If AI is configured, the brief is split into 1–6 subtasks by kind — `research`, `analysis`, `implement`, `schedule`. Without AI you get one task and a note saying so.
-2. Finished tasks in the same wiki (`status: done`) with overlapping words are attached as **references** — in the frontmatter (`refs:`) and in the body — so similar work follows the shape that already worked.
+2. Finished tasks in the same wiki (`status: done`) with overlapping words are attached as **references** — in the frontmatter (`refs:`) and in the body — so similar work follows the shape that already worked. Set `todoView.aiEmbeddingModel` to re-rank that shortlist with your provider's `/embeddings`; if the call fails, word overlap stands.
 3. Task Beacon writes `Projects/<slug>.md` plus `Tasks/<slug>-NN-<kind>.md`, each `category: agent-task`. A `schedule` subtask becomes `agent-cron` and a row in `.task-beacon/jobs.json`.
 4. Each file carries the rules the agent needs: work alone, write under **Result**, set `status: done` or `status: blocked`.
 
@@ -123,6 +123,8 @@ claude -p "Do the task in {file}. Set status: done when finished."
 ```
 
 Only `agent-task` / `agent-cron` rows can be handed off. Official and Private never run unattended. Nothing runs if the runner is empty — the files are still written, and the board shows them.
+
+The epic follows its subtasks on every refresh: all `done` → `done`; the rest finished but one `blocked` → `blocked`; otherwise `in-progress`. Only epics Task Beacon wrote (`type: Epic` with `delegated:`) are updated; hand-written epics are never touched. Both fields live in **Settings → Agent**.
 
 ---
 
@@ -162,6 +164,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | `todoView.aiDefaultModel` | *(empty)* | Default model id |
 | `todoView.grafanaUrl` | *(empty)* | Grafana URL. Set it to show the AI Health panel |
 | `todoView.agentRunner` | *(empty)* | Command template for **Run with Agent**: `{file}`, `{title}`, `{root}`. Empty = write files only |
+| `todoView.aiEmbeddingModel` | *(empty)* | Embedding model on the same provider to re-rank references. Empty = word overlap |
 
 ---
 

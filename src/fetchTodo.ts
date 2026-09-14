@@ -6,6 +6,7 @@ import { ShowTodoFull, WikiChannel, WikiTask, normalizeCategory } from './types'
 import { jiraAuthEnv, jiraBaseUrl } from './jiraConfig';
 import { effectiveWikiRoot } from './wikiRoot';
 import { findCronJob, hermesNativeId, loadCronChannel, resolveCronScriptPath } from './cronAdapters';
+import { reconcileDelegatedEpics } from './epicReconcile';
 
 export { resolveCronScriptPath } from './cronAdapters';
 
@@ -114,6 +115,13 @@ function normalizeFetchedTodo(data: ShowTodoFull, root: string): ShowTodoFull {
 }
 
 function fetchFromVault(root: string): ShowTodoFull {
+  // Delegated epics follow their subtasks (done / blocked / in-progress).
+  // Hand-written epics are never touched — see epicReconcile.ts.
+  try {
+    reconcileDelegatedEpics(root);
+  } catch {
+    // Read-only wiki or transient fs error: the board still renders.
+  }
   return {
     jira: { ok: true, total: 0, in_progress: [], to_do: [], error: null },
     wiki: mapWikiTasks(scanVaultTasks(root)),
