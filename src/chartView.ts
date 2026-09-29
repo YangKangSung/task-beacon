@@ -94,7 +94,8 @@ export class TodoChartViewProvider implements vscode.WebviewViewProvider {
   .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; font-size: 0.78em; }
   .legend .item { display: flex; align-items: center; gap: 4px; color: var(--vscode-descriptionForeground); }
   .legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .axis-label { font-size: 8px; fill: var(--vscode-descriptionForeground); }
+  .trend { fill: none; stroke-width: 1.75; stroke-dasharray: 1600; stroke-dashoffset: 1600; animation: draw-line 1.1s ease forwards; }
+  @keyframes draw-line { to { stroke-dashoffset: 0; } }
 </style>
 </head>
 <body>
@@ -140,7 +141,7 @@ function renderChartBlock(title: string, history: SnapshotRecord[], series: Seri
   const polylines = series
     .map((s) => {
       const points = history.map((r) => `${x(r.ts).toFixed(1)},${y(s.get(r)).toFixed(1)}`).join(' ');
-      return `<polyline points="${points}" fill="none" stroke="${s.color}" stroke-width="1.75" />`;
+      return `<polyline class="trend" points="${points}" stroke="${s.color}" />`;
     })
     .join('');
 
