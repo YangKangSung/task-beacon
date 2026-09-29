@@ -76,11 +76,17 @@ export class CronChartViewProvider implements vscode.WebviewViewProvider {
 
     const caption = `<p class="caption">${sorted.length} job${sorted.length === 1 ? '' : 's'} · last ${MAX_RUNS_SHOWN} runs each · ${new Date(minTs).toLocaleString()} → ${new Date(maxTs).toLocaleString()}</p>`;
 
+    const nowLine = `<line class="now-line" y1="18" y2="${totalHeight - 4}">
+      <animate attributeName="x1" from="${LABEL_WIDTH}" to="${CHART_WIDTH - 8}" dur="10s" repeatCount="indefinite" />
+      <animate attributeName="x2" from="${LABEL_WIDTH}" to="${CHART_WIDTH - 8}" dur="10s" repeatCount="indefinite" />
+    </line>`;
+
     return `
       ${caption}
       <div class="chart">
         <svg viewBox="0 0 ${CHART_WIDTH} ${totalHeight}" preserveAspectRatio="xMinYMin meet" role="img" aria-label="Cron run timeline">
           ${axis}
+          ${nowLine}
           ${rows}
         </svg>
       </div>
@@ -112,7 +118,8 @@ export class CronChartViewProvider implements vscode.WebviewViewProvider {
   .run.silent { fill: var(--vscode-charts-yellow, #cca700); }
   .run.running { fill: var(--vscode-charts-blue, #3794ff); }
   .run.unknown { fill: var(--vscode-disabledForeground, #888); }
-  .running-pulse { animation: pulse 1.4s ease-in-out infinite; transform-origin: center; }
+  .running-pulse { animation: pulse 1.4s ease-in-out infinite; }
+  .now-line { stroke: var(--vscode-charts-blue, #3794ff); stroke-width: 1.5; opacity: 0.85; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.35 } }
   .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; font-size: 0.78em; color: var(--vscode-descriptionForeground); }
   .legend .item { display: flex; align-items: center; gap: 4px; }

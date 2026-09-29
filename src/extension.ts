@@ -7,6 +7,7 @@ import { TodoChartViewProvider } from './chartView';
 import { TodoPanelViewProvider } from './panelView';
 import { TodoAiHealthViewProvider } from './aiHealthView';
 import { CronChartViewProvider } from './cronChartView';
+import { LanesViewProvider } from './lanesView';
 import { TodoSettingsViewProvider } from './settingsView';
 import { CronRunsStore } from './cronRunsStore';
 import { HistoryStore } from './historyStore';
@@ -65,6 +66,15 @@ export function activate(context: vscode.ExtensionContext): void {
   const cronChartProvider = new CronChartViewProvider(cronRunsStore, provider);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(CronChartViewProvider.viewType, cronChartProvider)
+  );
+
+  const lanesProvider = new LanesViewProvider(context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(LanesViewProvider.viewType, lanesProvider),
+    { dispose: () => lanesProvider.dispose() },
+    vscode.commands.registerCommand('todoView.openLanes', () =>
+      vscode.commands.executeCommand('todoView.panelLanes.focus')
+    )
   );
 
   const settingsSidebarProvider = new TodoSettingsViewProvider();

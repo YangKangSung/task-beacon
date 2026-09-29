@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.17.0
+
+Hermes session lanes sit in the bottom panel. Play walks the time axis in a few seconds, and Live polls that machine's state.db so the concurrency lines and gantt keep moving. Chart trend lines draw themselves when the view refreshes. Cron Runs keeps a moving time marker over the job bars.
+
 ## 0.16.0
 
 Cron health. Each live job is judged from its own file: ♥ when the last due fire (`next_run`, or `schedule` after `last_run`) was honoured within a 10-minute grace, 💔 when the due time passed with no run recorded, ♡ when there is not enough data, ☁ for vendor-ticked jobs such as GitHub Actions. Shown on the Agent root, the Cron subhead, a per-source **Health** row, overdue jobs, the status bar, and a bottom-panel tile. **Task Beacon: Cron Health…** lists sources and jobs; the Hermes entry can run `hermes cron status` in a terminal on request. A small 5-field cron parser (names, ranges, steps, Vixie day-or semantics) and interval parser (`every 2h`, `30m`, `daily`) back the computation. Claude Desktop local tasks (`~/.claude/scheduled-tasks/*/SKILL.md`) are now read as a source. Task Beacon still does not inspect processes or the OS scheduler.

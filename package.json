@@ -2,7 +2,7 @@
   "name": "task-beacon",
   "displayName": "Task Beacon",
   "description": "Official, Private, and Agent tasks in one VS Code sidebar. A wiki folder is enough. Jira, Hermes, and Grafana are optional.",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "publisher": "YangKangSung",
   "author": "YangKangSung (ksyang)",
   "private": false,
@@ -112,6 +112,15 @@
           "icon": "resources/beacon.svg",
           "contextualTitle": "Task Beacon",
           "initialSize": 4,
+          "visibility": "visible"
+        },
+        {
+          "type": "webview",
+          "id": "todoView.panelLanes",
+          "name": "Lanes",
+          "icon": "$(graph)",
+          "contextualTitle": "Hermes Lanes",
+          "initialSize": 3,
           "visibility": "visible"
         },
         {
@@ -230,6 +239,12 @@
         "command": "todoView.openSettings",
         "title": "Settings...",
         "icon": "$(settings-gear)",
+        "category": "Task Beacon"
+      },
+      {
+        "command": "todoView.openLanes",
+        "title": "Open Hermes Lanes",
+        "icon": "$(graph)",
         "category": "Task Beacon"
       },
       {
@@ -599,6 +614,11 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Command that runs one agent task file, opened in a VS Code terminal. Placeholders: `{file}` (absolute task path), `{title}`, `{root}` (wiki folder). Examples: `hermes chat -q \"Read {file} and do it. Set status: done when finished.\"` or `claude -p \"Do the task in {file}. Set status: done when finished.\"`. Leave empty to only write the files."
+        },
+        "todoView.hermesHome": {
+          "type": "string",
+          "default": "",
+          "description": "Hermes home for the Lanes board. Empty uses HERMES_HOME, then the local Hermes install."
         }
       }
     }

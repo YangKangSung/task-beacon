@@ -81,11 +81,11 @@ Next to the tree:
 
 - **Summary** — details for the selected item, optional AI summary
 - **Table** — sortable grid of the same items
-- **Chart** — counts over time (local snapshot history)
-- **Cron Runs** — recent job output
+- **Chart** — counts over time (local snapshot history). Lines draw in when the numbers refresh.
+- **Cron Runs** — recent job output, with a moving time marker
 - **Settings** — the same setup UI as the command
 
-A bottom **Task Beacon** panel (same strip as Terminal) shows Official / Private / Agent counters, a matching priority feed, and optional AI insights.
+A bottom **Task Beacon** panel (same strip as Terminal) shows Official / Private / Agent counters, a matching priority feed, and optional AI insights. **Lanes** is on that strip: Hermes sessions on one time axis. **Play** walks the window. **Live** keeps the lines and gantt moving from that computer's Hermes database. Prompt text is not read.
 
 ---
 
@@ -168,6 +168,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | `todoView.pythonPath` | `python` | Python used to run that script |
 | `todoView.jiraBaseUrl` | *(empty)* | Optional Jira site. Empty = Official is wiki-only |
 | `todoView.hermesProfile` | `default` | Hermes profile for cron |
+| `todoView.hermesHome` | *(empty)* | Hermes home for Lanes. Empty uses `HERMES_HOME`, then the local install |
 | `todoView.autoRefreshSec` | `0` | Auto-refresh; `0` is off |
 | `todoView.aiProvider` | `xai` | `xai` / `ollama` / `litellm` / `openai` / `anthropic` |
 | `todoView.aiBaseUrl` | `https://api.x.ai/v1` | OpenAI-compatible API |
@@ -192,6 +193,7 @@ Open **Task Beacon: Settings...**, or edit these keys:
 | **Task Beacon: Select AI Model...** | Pick a model when AI is configured |
 | **Task Beacon: Delegate to Agent...** | Split a brief into agent task files, attach finished references, hand off to your runner |
 | **Task Beacon: Cron Health...** | ♥ / 💔 per scheduler source; open the job file or run `hermes cron status` |
+| **Task Beacon: Open Hermes Lanes** | Session gantt in the bottom panel. Play and Live animate it |
 | **Task Beacon: Log in to xAI via Hermes** | Device login (`hermes auth add xai-oauth`) |
 
 ---
