@@ -8,6 +8,7 @@ import { summarizeWithAi } from './aiClient';
 import { ModelStats } from './grafanaClient';
 import { JiraIssue, WikiTask, CronJob, ShowTodoFull, FilterMode } from './types';
 import { Owner, ownerOfWikiTask, ownerStats, wikiForOwner } from './owners';
+import { splitJiraByWorkflow } from './workflowStatus';
 import { formatLate, healthGlyph, summarizeHealth } from './cronHealth';
 
 interface SeriesDef {
@@ -407,12 +408,13 @@ function collectFeedRows(data: ShowTodoFull): FeedRow[] {
   const today = startOfToday();
 
   if (data.jira.ok) {
-    for (const iss of data.jira.in_progress) {
+    const split = splitJiraByWorkflow(data.jira);
+    const pushIssue = (iss: JiraIssue, openPriority: number) => {
       const overdue = isOverdue(iss.due);
       rows.push({
         kind: 'jira',
         owner: 'official',
-        priority: overdue ? 100 : 60,
+        priority: overdue ? openPriority + 40 : openPriority,
         key: iss.key,
         title: iss.summary,
         status: iss.status,
@@ -422,23 +424,9 @@ function collectFeedRows(data: ShowTodoFull): FeedRow[] {
         epicKey: iss.epic_key ?? undefined,
         alert: overdue ? `overdue ${daysDelta(iss.due, today)}d` : undefined,
       });
-    }
-    for (const iss of data.jira.to_do) {
-      const overdue = isOverdue(iss.due);
-      rows.push({
-        kind: 'jira',
-        owner: 'official',
-        priority: overdue ? 90 : 30,
-        key: iss.key,
-        title: iss.summary,
-        status: iss.status,
-        meta: `${iss.priority} · ${iss.epic_key ? 'epic ' + iss.epic_key + ' · ' : ''}due ${iss.due ?? '—'}`,
-        action: 'openJiraIssue',
-        actionKey: iss.key,
-        epicKey: iss.epic_key ?? undefined,
-        alert: overdue ? `overdue ${daysDelta(iss.due, today)}d` : undefined,
-      });
-    }
+    };
+    for (const iss of split.active) pushIssue(iss, 60);
+    for (const iss of split.todo) pushIssue(iss, 30);
   }
   if (data.wiki.ok) {
     for (const t of data.wiki.active) {
@@ -570,7 +558,8 @@ function renderTimeline(data: ShowTodoFull): string {
   const overdueBucket: string[] = [];
 
   if (data.jira.ok) {
-    for (const iss of data.jira.in_progress.concat(data.jira.to_do)) {
+    const split = splitJiraByWorkflow(data.jira);
+    for (const iss of split.active.concat(split.todo)) {
       if (!iss.due) continue;
       const parsed = Date.parse(iss.due);
       if (Number.isNaN(parsed)) continue;
@@ -877,10 +866,11 @@ function buildInsightsContext(data: ShowTodoFull): string {
 
   parts.push('## Official');
   if (data.jira.ok) {
-    parts.push('### Jira — In Progress');
-    parts.push(...formatJira(data.jira.in_progress, today));
+    const split = splitJiraByWorkflow(data.jira);
+    parts.push('### Jira — Active');
+    parts.push(...formatJira(split.active, today));
     parts.push('### Jira — To Do');
-    parts.push(...formatJira(data.jira.to_do, today));
+    parts.push(...formatJira(split.todo, today));
   } else if (data.jira.error) {
     parts.push(`Jira fetch failed: ${data.jira.error}`);
   }

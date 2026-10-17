@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ShowTodoFull } from './types';
 import { ownerStats } from './owners';
+import { splitJiraByWorkflow } from './workflowStatus';
 
 export interface SnapshotRecord {
   ts: number;
@@ -66,8 +67,9 @@ export class HistoryStore {
 }
 
 function buildRecord(data: ShowTodoFull): SnapshotRecord {
-  const overdue = data.jira.ok
-    ? data.jira.in_progress.concat(data.jira.to_do).filter((i) => isOverdue(i.due)).length
+  const jiraSplit = data.jira.ok ? splitJiraByWorkflow(data.jira) : undefined;
+  const overdue = jiraSplit
+    ? jiraSplit.active.concat(jiraSplit.todo).filter((i) => isOverdue(i.due)).length
     : 0;
   const cronFailing = data.cron.ok ? data.cron.jobs.filter((j) => isFail(j.last_status)).length : 0;
   const cronActive = data.cron.ok
@@ -79,8 +81,8 @@ function buildRecord(data: ShowTodoFull): SnapshotRecord {
     jira: {
       total: data.jira.ok ? data.jira.total : 0,
       overdue,
-      inProgress: data.jira.ok ? data.jira.in_progress.length : 0,
-      toDo: data.jira.ok ? data.jira.to_do.length : 0,
+      inProgress: jiraSplit ? jiraSplit.active.length : 0,
+      toDo: jiraSplit ? jiraSplit.todo.length : 0,
     },
     wiki: {
       pending: data.wiki.ok ? data.wiki.pending.length : 0,

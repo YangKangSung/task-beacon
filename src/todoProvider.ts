@@ -5,6 +5,7 @@ import { configuredWikiRoot, inspectLabel, inspectWikiRoot, isUsableWiki, usingS
 import { jiraBaseUrl } from './jiraConfig';
 import { filterByCategory } from './owners';
 import { formatLate, healthBySource, healthGlyph, HealthSummary, summarizeHealth } from './cronHealth';
+import { splitJiraByWorkflow } from './workflowStatus';
 
 const ROOT_OFFICIAL = 'root-official';
 const ROOT_PRIVATE = 'root-private';
@@ -181,7 +182,11 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
     const wikiAgent = data.wiki.ok ? filterByCategory(data.wiki, 'agent-task', 'agent-cron') : emptyWiki();
 
     const jiraCount = data.jira.ok ? data.jira.total : 0;
-    const overdue = data.jira.ok ? countOverdue(data.jira.in_progress.concat(data.jira.to_do)) : 0;
+    const jiraSplit = data.jira.ok ? splitJiraByWorkflow(data.jira) : undefined;
+    const jiraOpen = jiraSplit ? jiraSplit.active.concat(jiraSplit.todo) : [];
+    const overdue = countOverdue(jiraOpen);
+    const officialJiraActive = jiraSplit ? jiraSplit.active.filter((i) => !isOverdue(i)).length : 0;
+    const officialActive = officialJiraActive + wikiOfficial.active.length;
     const officialWikiOpen = wikiOfficial.active.length + wikiOfficial.pending.length;
     const officialTotal = jiraCount + officialWikiOpen;
 
@@ -205,6 +210,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
       }
       if (officialWikiOpen > 0) parts.push(`Wiki ${officialWikiOpen}`);
       else if (!jiraConfigured) parts.push('wiki official');
+      parts.push(`${officialActive} active`);
       if (overdue > 0) parts.push(`${overdue} overdue`);
       roots.push({
         kind: ROOT_OFFICIAL,
@@ -225,7 +231,7 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
         kind: ROOT_PRIVATE,
         label: 'Private',
         description: data.wiki.ok
-          ? `LLMWiki · ${privateTotal}${privateActive ? '  ·  ' + privateActive + ' active' : ''}`
+          ? `LLMWiki · ${privateTotal}  ·  ${privateActive} active`
           : 'LLMWiki · error',
         tooltip: data.wiki.ok
           ? `Private wiki tasks (category=private/unknown)\n${privateActive} active · ${privatePending} pending`
@@ -269,6 +275,8 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
     const wiki = this.cache!.wiki;
     const nodes: TodoNode[] = [];
 
+    const inProg: JiraIssue[] = [];
+    const toDo: JiraIssue[] = [];
     if (!jira.ok) {
       nodes.push({
         kind: 'error',
@@ -278,9 +286,8 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
         iconColor: 'errorForeground',
       });
     } else {
-      const all = jira.in_progress
-        .concat(jira.to_do)
-        .filter((i) => this.matchesSearch(`${i.key} ${i.summary}`));
+      const split = splitJiraByWorkflow(jira);
+      const all = split.active.concat(split.todo).filter((i) => this.matchesSearch(`${i.key} ${i.summary}`));
       const overdue = all.filter(isOverdue);
 
       if (overdue.length > 0) {
@@ -294,58 +301,49 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
         });
       }
 
-      const inProg = all.filter((i) => !isOverdue(i) && jira.in_progress.includes(i));
-      if (inProg.length > 0) {
-        nodes.push({
-          kind: 'subhead',
-          label: 'In Progress',
-          description: `${inProg.length}`,
-          iconId: 'debug-start',
-          iconColor: 'charts.green',
-          children: groupJiraByEpic(inProg, 'in-progress'),
-        });
-      }
-
-      const toDo = all.filter((i) => !isOverdue(i) && jira.to_do.includes(i));
-      if (toDo.length > 0) {
-        nodes.push({
-          kind: 'subhead',
-          label: 'To Do',
-          description: `${toDo.length}`,
-          iconId: 'circle-outline',
-          iconColor: 'charts.blue',
-          children: groupJiraByEpic(toDo, 'to-do'),
-        });
-      }
+      inProg.push(...all.filter((i) => !isOverdue(i) && split.active.includes(i)));
+      toDo.push(...all.filter((i) => !isOverdue(i) && split.todo.includes(i)));
     }
 
-    // Official wiki tasks (category=official) — sibling subhead after Jira.
-    if (wiki.ok) {
-      const officialWiki = filterByCategory(wiki, 'official');
-      const active = officialWiki.active.filter((t) => this.matchesSearch(`${t.title} ${t.note}`));
-      const pending = officialWiki.pending.filter((t) => this.matchesSearch(`${t.title} ${t.note}`));
+    const officialWiki = wiki.ok ? filterByCategory(wiki, 'official') : emptyWiki();
+    const active = wiki.ok ? officialWiki.active.filter((t) => this.matchesSearch(`${t.title} ${t.note}`)) : [];
+    const pending = wiki.ok ? officialWiki.pending.filter((t) => this.matchesSearch(`${t.title} ${t.note}`)) : [];
 
-      if (active.length > 0) {
-        nodes.push({
-          kind: 'subhead',
-          label: 'Wiki · Active',
-          description: `${active.length}`,
-          iconId: 'zap',
-          iconColor: 'charts.yellow',
-          children: groupWikiByEpic(active, 'active'),
-        });
-      }
+    if (jira.ok || wiki.ok) {
+      const activeCount = inProg.length + active.length;
+      nodes.push({
+        kind: 'subhead',
+        label: 'Active',
+        description: `${activeCount}`,
+        iconId: 'zap',
+        iconColor: 'charts.yellow',
+        children:
+          activeCount > 0
+            ? [...groupJiraByEpic(inProg, 'in-progress'), ...groupWikiByEpic(active, 'active')]
+            : undefined,
+      });
+    }
 
-      if (pending.length > 0) {
-        nodes.push({
-          kind: 'subhead',
-          label: 'Wiki · Pending',
-          description: `${pending.length}`,
-          iconId: 'inbox',
-          iconColor: 'charts.purple',
-          children: groupWikiByEpic(pending, 'pending'),
-        });
-      }
+    if (toDo.length > 0) {
+      nodes.push({
+        kind: 'subhead',
+        label: 'To Do',
+        description: `${toDo.length}`,
+        iconId: 'circle-outline',
+        iconColor: 'charts.blue',
+        children: groupJiraByEpic(toDo, 'to-do'),
+      });
+    }
+
+    if (pending.length > 0) {
+      nodes.push({
+        kind: 'subhead',
+        label: 'Wiki · Pending',
+        description: `${pending.length}`,
+        iconId: 'inbox',
+        iconColor: 'charts.purple',
+        children: groupWikiByEpic(pending, 'pending'),
+      });
     }
 
     if (nodes.length === 0) {
@@ -376,16 +374,14 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
     const pending = priv.pending.filter((t) => this.matchesSearch(`${t.title} ${t.note}`));
     const nodes: TodoNode[] = [];
 
-    if (active.length > 0) {
-      nodes.push({
-        kind: 'subhead',
-        label: 'Active',
-        description: `${active.length}`,
-        iconId: 'zap',
-        iconColor: 'charts.yellow',
-        children: groupWikiByEpic(active, 'active'),
-      });
-    }
+    nodes.push({
+      kind: 'subhead',
+      label: 'Active',
+      description: `${active.length}`,
+      iconId: 'zap',
+      iconColor: 'charts.yellow',
+      children: active.length > 0 ? groupWikiByEpic(active, 'active') : undefined,
+    });
 
     if (pending.length > 0) {
       nodes.push({
@@ -396,10 +392,6 @@ export class TodoTreeDataProvider implements vscode.TreeDataProvider<TodoNode> {
         iconColor: 'charts.purple',
         children: groupWikiByEpic(pending, 'pending'),
       });
-    }
-
-    if (nodes.length === 0) {
-      nodes.push(inboxZeroNode('no active or pending private tasks'));
     }
 
     return nodes;
