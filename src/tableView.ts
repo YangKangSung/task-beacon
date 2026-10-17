@@ -3,6 +3,7 @@ import { TodoTreeDataProvider } from './todoProvider';
 import { jiraBrowseUrl } from './jiraConfig';
 import { CronJob, JiraIssue, ShowTodoFull, WikiTask } from './types';
 import { Owner, ownerOfWikiTask, ownerStats } from './owners';
+import { splitJiraByWorkflow } from './workflowStatus';
 
 const MS_DAY = 86400000;
 
@@ -73,8 +74,9 @@ export class TodoTableViewProvider implements vscode.WebviewViewProvider {
     }
     const rows: Row[] = [];
     if (data.jira.ok) {
-      data.jira.in_progress.forEach((i) => rows.push(jiraRow(i, 'In Progress')));
-      data.jira.to_do.forEach((i) => rows.push(jiraRow(i, 'To Do')));
+      const split = splitJiraByWorkflow(data.jira);
+      split.active.forEach((i) => rows.push(jiraRow(i, 'Active')));
+      split.todo.forEach((i) => rows.push(jiraRow(i, 'To Do')));
     }
     if (data.wiki.ok) {
       data.wiki.active.forEach((t) => rows.push(wikiRow(t, 'active')));
@@ -248,7 +250,7 @@ function jiraRow(issue: JiraIssue, statusLabel: string): Row {
     extra: [issue.labels.join(' '), issue.components.join(' ')].filter(Boolean).join(' · '),
     overdue,
     failing: false,
-    sortKey: overdue ? 9000 + (daysUntilNeg(issue.due) || 0) : statusLabel === 'In Progress' ? 5000 : 3000,
+    sortKey: overdue ? 9000 + (daysUntilNeg(issue.due) || 0) : statusLabel === 'Active' ? 5000 : 3000,
   };
 }
 

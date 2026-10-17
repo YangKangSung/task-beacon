@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.17.1
+
+Official groups Jira issues by workflow status, case-insensitive: To Do stays To Do, In Progress and Reopened count as Active, Resolved and Closed leave the open board. The Active row stays visible at 0. The same names apply to wiki task status.
+
 ## 0.17.0
 
 Hermes session lanes sit in the bottom panel. Play walks the time axis in a few seconds, and Live polls that machine's state.db so the concurrency lines and gantt keep moving. Chart trend lines draw themselves when the view refreshes. Cron Runs keeps a moving time marker over the job bars.

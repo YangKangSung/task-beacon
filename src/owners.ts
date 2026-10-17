@@ -1,5 +1,6 @@
 import { ShowTodoFull, WikiChannel, WikiTask, normalizeCategory } from './types';
 import { jiraBaseUrl } from './jiraConfig';
+import { splitJiraByWorkflow } from './workflowStatus';
 
 export type Owner = 'official' | 'private' | 'agent';
 
@@ -70,9 +71,8 @@ export function ownerStats(data: ShowTodoFull): OwnerStats {
   const wikiAgent = data.wiki.ok ? wikiForOwner(data.wiki, 'agent') : emptyWiki(data.wiki.error);
 
   const jiraCount = data.jira.ok ? data.jira.total : 0;
-  const overdue = data.jira.ok
-    ? data.jira.in_progress.concat(data.jira.to_do).filter((i) => isOverdue(i.due)).length
-    : 0;
+  const jiraSplit = data.jira.ok ? splitJiraByWorkflow(data.jira) : undefined;
+  const overdue = jiraSplit ? jiraSplit.active.concat(jiraSplit.todo).filter((i) => isOverdue(i.due)).length : 0;
   const officialWiki = wikiOfficial.active.length + wikiOfficial.pending.length;
   const jiraUsed = Boolean(jiraBaseUrl()) || jiraCount > 0 || !data.jira.ok;
 

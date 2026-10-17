@@ -7,6 +7,7 @@ import { jiraAuthEnv, jiraBaseUrl } from './jiraConfig';
 import { effectiveWikiRoot } from './wikiRoot';
 import { findCronJob, hermesNativeId, loadCronChannel, resolveCronScriptPath } from './cronAdapters';
 import { reconcileDelegatedEpics } from './epicReconcile';
+import { wikiStatusBucket } from './workflowStatus';
 
 export { resolveCronScriptPath } from './cronAdapters';
 
@@ -218,14 +219,6 @@ function parseVaultTaskFile(
     category: normalizeCategory(fm.category) || fm.category || '',
   };
   return { task, bucket: wikiStatusBucket(fm.status) };
-}
-
-function wikiStatusBucket(raw: string | undefined): 'pending' | 'active' | 'completed' | 'cancelled' {
-  const status = (raw ?? '').trim().toLowerCase().replace(/_/g, '-');
-  if (['in-progress', 'active', 'doing', 'wip'].includes(status)) return 'active';
-  if (['done', 'completed', 'complete'].includes(status)) return 'completed';
-  if (['cancelled', 'canceled'].includes(status)) return 'cancelled';
-  return 'pending';
 }
 
 // hermes CLI cold-starts its Python venv on every invocation (~9-13s
